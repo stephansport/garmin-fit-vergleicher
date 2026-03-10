@@ -1,11 +1,24 @@
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import * as math from 'mathjs';
-import FitFileParser from 'fit-file-parser'; // Direkt importieren
-import { Chart, LineController, LineElement, PointElement, LinearScale, Title, Tooltip, Legend, CategoryScale, Filler } from 'chart.js'; // Gezielte Importe für Chart.js v3+ (Tree Shaking)
+// Leaflet, Chart, mathjs und FitFileParser kommen global aus den CDN-Skripten in index.html
+
+// Chart.js UMD exportiert "Chart" im globalen Namespace
+const { Chart, LineController, LineElement, PointElement, LinearScale, Title, Tooltip, Legend, CategoryScale, Filler } = window.Chart;
+
+// mathjs liegt global als "math" vor (durch das CDN-Skript)
+// FitFileParser liegt global als "FitFileParser" vor
 
 // Wichtig: Chart.js Controller und Skalen registrieren
-Chart.register(LineController, LineElement, PointElement, LinearScale, Title, Tooltip, Legend, CategoryScale, Filler);
+Chart.register(
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  Filler
+);
+
 
 
 // Globale Variablen
@@ -971,6 +984,5 @@ function initializeAppLogic() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOMContentLoaded event.");
     // Der Bibliothekscheck entfällt, da Parcel das übernimmt.
-    // Wenn die Imports oben fehlschlagen, würde Parcel schon beim Start einen Fehler werfen.
     initializeAppLogic();
 });

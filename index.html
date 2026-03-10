@@ -5,9 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Garmin FIT Vergleicher</title>
 
-  <!-- Direktes Einbinden der CSS-Datei aus dem src-Ordner -->
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  >
+
+  <!-- Eigenes CSS -->
   <link rel="stylesheet" href="./src/style.css">
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j7kGQK4qS2+3E6V36zE9Ogr2J3yYx04EcZV+4v0="
+    crossorigin=""
+  ></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+
+  <!-- mathjs -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@14.4.0/lib/browser/math.js"></script>
+
+  <!-- fit-file-parser -->
+  <script src="https://cdn.jsdelivr.net/npm/fit-file-parser@1.21.0/dist/fit-file-parser.min.js"></script>
 </head>
+
 <body>
   <div class="container">
     <h1>Garmin FIT Vergleicher</h1>
@@ -96,7 +121,7 @@
     </div>
   </div>
 
-  <!-- App-Logik aus src/app.js laden -->
-  <script type="module" src="./src/app.js"></script>
+  <!-- App-Logik -->
+ <script src="./src/app.js"></script>
 </body>
 </html>
