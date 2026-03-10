@@ -117,163 +117,70 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 async function parseFitFile(file, activityId) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+  const backendUrl = 'https://garmin-fit-backend.onrender.com/api/parse-fit';
+  // URL an deinen tatsächlichen Render-Service anpassen
 
-    reader.onload = function (event) {
-      try {
-        // EasyFit-Instanz aus dem CDN (globales EasyFit)
-        const easyFit = new EasyFit({
-          force: true,
-          speedUnit: 'km/h',     // speed in m/s -> km/h umrechnen übernehmen wir unten
-          lengthUnit: 'm',       // Distanz in Metern
-          elapsedRecordField: true
-        });
+  if (!file) {
+    throw new Error('Keine Datei übergeben');
+  }
 
-        const arrayBuffer = event.target.result;
+  const formData = new FormData();
+  formData.append('file', file);
 
-        easyFit.parse(arrayBuffer, (error, data) => {
-          if (error) {
-            console.error('Fehler beim Parsen der FIT-Datei:', error);
-            reject(error);
-            return;
-          }
+  let response;
+  try {
+    response = await fetch(backendUrl, {
+      method: 'POST',
+      body: formData
+    });
+  } catch (err) {
+    console.error('Netzwerk- oder Verbindungsfehler zum Backend:', err);
+    throw new Error('Keine Verbindung zum FIT-Backend möglich');
+  }
 
-          const records = data.records;
-          if (!records || records.length === 0) {
-            console.error('Keine Records in der FIT-Datei gefunden.');
-            reject('No records');
-            return;
-          }
-
-          // Startzeit
-          const activityStartTime = records[0].timestamp.getTime();
-
-          let accumulatedTotalDistance = 0;
-          let accumulatedAscent = 0;
-          let lastPoint = null;
-          let lastAltitudeForAscentCalculation = null;
-
-          const processedRecords = records
-            .filter(
-              r =>
-                r.timestamp &&
-                r.position_lat !== undefined &&
-                r.position_long !== undefined
-            )
-            .map((r, index) => {
-              const lat = r.position_lat;
-              const lon = r.position_long;
-
-              const absoluteTimestamp = r.timestamp.getTime();
-              const relativeTimestamp = absoluteTimestamp - activityStartTime;
-
-              // Höhe
-              let currentAltitudeInMeters = null;
-              if (
-                typeof r.altitude === 'number' &&
-                !isNaN(r.altitude)
-              ) {
-                currentAltitudeInMeters = r.altitude;
-              }
-
-              // Geschwindigkeit: EasyFit liefert speed typischerweise in m/s
-              let currentSpeedKmh = 0;
-              if (typeof r.speed === 'number' && !isNaN(r.speed)) {
-                currentSpeedKmh = r.speed * 3.6;
-              }
-
-              // Distanz: wenn EasyFit distance-Feld in Metern liefert, kumulieren
-              let segmentDistance = 0;
-              if (lastPoint && lat != null && lon != null) {
-                segmentDistance = haversineDistance(
-                  lastPoint.lat,
-                  lastPoint.lon,
-                  lat,
-                  lon
-                );
-                accumulatedTotalDistance += segmentDistance;
-              }
-              if (lat != null && lon != null) {
-                lastPoint = { lat, lon };
-              }
-
-              // kumulierte Höhenmeter
-              if (
-                lastAltitudeForAscentCalculation != null &&
-                currentAltitudeInMeters != null &&
-                !isNaN(currentAltitudeInMeters)
-              ) {
-                const altitudeChange =
-                  currentAltitudeInMeters - lastAltitudeForAscentCalculation;
-                if (altitudeChange > 0) {
-                  accumulatedAscent += altitudeChange;
-                }
-              }
-              if (
-                currentAltitudeInMeters != null &&
-                !isNaN(currentAltitudeInMeters)
-              ) {
-                lastAltitudeForAscentCalculation = currentAltitudeInMeters;
-              }
-
-              return {
-                timestamp: absoluteTimestamp,
-                relativeTimestamp: relativeTimestamp,
-                originalTimestamp: r.timestamp,
-                lat: lat,
-                lon: lon,
-                heartrate: r.heart_rate, // Feldname bei EasyFit
-                speed: currentSpeedKmh,
-                power: r.power,
-                altitude: currentAltitudeInMeters,
-                distance: accumulatedTotalDistance,
-                accumulatedascent: accumulatedAscent
-              };
-            })
-            .filter(
-              p =>
-                p.lat != null &&
-                p.lon != null &&
-                p.lat !== 0 &&
-                p.lon !== 0
-            );
-
-          if (processedRecords.length === 0) {
-            console.error('Keine gültigen GPS-Daten gefunden.');
-            reject('No valid GPS data');
-            return;
-          }
-
-          const activityEndTime =
-            processedRecords[processedRecords.length - 1].timestamp;
-          const activityTotalDurationMs =
-            activityEndTime - activityStartTime;
-
-          resolve({
-            records: processedRecords,
-            startTime: activityStartTime,
-            endTime: activityEndTime,
-            totalDuration: activityTotalDurationMs / 1000,
-            totalDurationMs: activityTotalDurationMs,
-            totalDistance: accumulatedTotalDistance,
-            totalAscent: accumulatedAscent
-          });
-        });
-      } catch (e) {
-        console.error('Unerwarteter Fehler beim Parsen der FIT-Datei:', e);
-        reject(e);
+  if (!response.ok) {
+    let errMsg = `Backend error: ${response.status}`;
+    try {
+      const errJson = await response.json();
+      if (errJson && errJson.error) {
+        errMsg = errJson.error;
       }
-    };
+    } catch (_) {
+      // JSON-Parse-Fehler ignorieren, Standardtext verwenden
+    }
+    throw new Error(errMsg);
+  }
 
-    reader.onerror = function () {
-      console.error('Fehler beim Lesen der Datei.');
-      reject('Fehler beim Lesen der Datei.');
-    };
+  const data = await response.json();
 
-    reader.readAsArrayBuffer(file);
-  });
+  // Erwartete Struktur vom Backend:
+  // {
+  //   records: [...],
+  //   startTime,
+  //   endTime,
+  //   totalDuration,
+  //   totalDurationMs,
+  //   totalDistance,
+  //   totalAscent
+  // }
+
+  if (!data || !Array.isArray(data.records) || data.records.length === 0) {
+    throw new Error('Backend lieferte keine gültigen FIT-Daten');
+  }
+
+  // Direkt zurückgeben; dein bestehender Code arbeitet bereits mit
+  // data.records, data.totalDurationMs, data.totalDistance, data.totalAscent usw.
+  return {
+    records: data.records,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    totalDuration: data.totalDuration,
+    totalDurationMs: data.totalDurationMs,
+    totalDistance: data.totalDistance,
+    totalAscent: data.totalAscent
+  };
 }
+
 
 
 function semicirclesToDegrees(semicircles) {
