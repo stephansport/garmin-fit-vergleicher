@@ -117,130 +117,164 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 async function parseFitFile(file, activityId) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            try {
-                const fitParser = new FitFileParser({
-                    force: true,
-                    speedUnit: 'km/h',    // Sollte r.speed in km/h liefern
-                    lengthUnit: 'km',     // Sollte Längen/Höhen in km liefern (z.B. enhanced_altitude)
-                    temperatureUnit: 'celsius',
-                    elapsedRecordField: true,
-                    mode: 'list',
-                });
-                const arrayBuffer = event.target.result;
-                fitParser.parse(arrayBuffer, (error, data) => {
-                    if (error) { /* ... Fehlerbehandlung ... */ reject(error); return; }
-                    const records = data.records || [];
-                    if (records.length === 0) { /* ... Fehlerbehandlung ... */ reject("No records"); return; }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
 
-                    const activityStartTime = records[0].timestamp.getTime();
-                    
-                    // Diese Variablen MÜSSEN außerhalb des .map() Callbacks deklariert werden,
-                    // damit sie über alle Records hinweg akkumulieren können.
-                    let accumulatedTotalDistance = 0;
-                    let accumulatedAscent = 0; 
-                    let lastPoint = null;
-                    let lastAltitudeForAscentCalculation = null; // Umbenannt für Klarheit
+    reader.onload = function (event) {
+      try {
+        // EasyFit-Instanz aus dem CDN (globales EasyFit)
+        const easyFit = new EasyFit({
+          force: true,
+          speedUnit: 'km/h',     // speed in m/s -> km/h umrechnen übernehmen wir unten
+          lengthUnit: 'm',       // Distanz in Metern
+          elapsedRecordField: true
+        });
 
-                    const processedRecords = records
-                        .filter(r => r.timestamp && r.position_lat !== undefined && r.position_long !== undefined)
-                        .map((r, index) => {
-                            const lat = r.position_lat;
-                            const lon = r.position_long;
-                            const absoluteTimestamp = r.timestamp.getTime();
-                            const relativeTimestamp = absoluteTimestamp - activityStartTime;
-                            
-                            // --- Höhe verarbeiten ---
-                            let rawAltitudeFromParser = r.enhanced_altitude; 
-                            if (rawAltitudeFromParser === undefined) { 
-                                rawAltitudeFromParser = r.altitude;
-                            }
-                            let currentAltitudeInMeters = null; 
-                            if (rawAltitudeFromParser !== undefined && rawAltitudeFromParser !== null && typeof rawAltitudeFromParser === 'number' && !isNaN(rawAltitudeFromParser)) {
-                                // ANNAHME: Da lengthUnit='km' ist, liefert der Parser enhanced_altitude in km.
-                                currentAltitudeInMeters = rawAltitudeFromParser * 1000; 
-                            }
-                        
-							// --- Geschwindigkeit verarbeiten ---
-                            let currentSpeedKmh = 0; 
-                            
-                            // NEUE ANNAHME: Die Parser-Option speedUnit: 'km/h' wirkt auf ALLE Geschwindigkeitsfelder.
-                            if (r.enhanced_speed !== undefined && r.enhanced_speed !== null) {
-                                currentSpeedKmh = r.enhanced_speed; // Direkt verwenden, da als km/h angenommen
-                                if (index % 500 === 0) { 
-                                    console.log(`  Speed: Using enhanced_speed ${r.enhanced_speed} (now assumed km/h directly from parser)`);
-                                }
-                            } else if (r.speed !== undefined && r.speed !== null) {
-                                currentSpeedKmh = r.speed; // Direkt verwenden, da als km/h angenommen
-                                if (index % 500 === 0) { 
-                                    console.log(`  Speed: Using speed ${r.speed} (assumed km/h from parser option)`);
-                                }
-                            } else {
-                                if (index % 500 === 0) { 
-                                    console.log(`  Speed: No speed or enhanced_speed field found.`);
-                            	}
-                            }	
-                            
-							
-                            // Distanzberechnung
-                            let segmentDistance = 0; // Diese Variable ist lokal für jeden map-Durchlauf, das ist ok.
-                            if (lastPoint && lat !== null && lon !== null) {
-                                segmentDistance = haversineDistance(lastPoint.lat, lastPoint.lon, lat, lon);
-                                accumulatedTotalDistance += segmentDistance; // Greift auf die äußere Variable zu
-                            }
-                            if (lat !== null && lon !== null) {
-                                lastPoint = { lat, lon }; // Aktualisiert die äußere Variable
-                            }
-                            
-                            // Kumulierte Höhenmeter berechnen
-                            if (lastAltitudeForAscentCalculation !== null && currentAltitudeInMeters !== undefined && currentAltitudeInMeters !== null && !isNaN(currentAltitudeInMeters)) {
-                                const altitudeChange = currentAltitudeInMeters - lastAltitudeForAscentCalculation;
-                                if (altitudeChange > 0) {
-                                    accumulatedAscent += altitudeChange; // Greift auf die äußere Variable zu
-                                }
-                            }
-                            if (currentAltitudeInMeters !== undefined && currentAltitudeInMeters !== null && !isNaN(currentAltitudeInMeters)) {
-                                lastAltitudeForAscentCalculation = currentAltitudeInMeters; // Aktualisiert die äußere Variable
-                            }
-                        
-                            return {
-                                timestamp: absoluteTimestamp,
-                                relativeTimestamp: relativeTimestamp,
-                                originalTimestamp: r.timestamp,
-                                lat: lat, 
-                                lon: lon,
-                                heart_rate: r.heart_rate, 
-                                speed: currentSpeedKmh,
-                                power: r.power,
-                                altitude: currentAltitudeInMeters,      
-                                distance: accumulatedTotalDistance, 
-                                accumulated_ascent: accumulatedAscent
-                            };
-                        }).filter(r => r.lat !== null && r.lon !== null && (r.lat !== 0 || r.lon !== 0));
+        const arrayBuffer = event.target.result;
 
-                    if (processedRecords.length === 0) { /* ... */ reject("No valid GPS data"); return; }
-                    
-                    const activityEndTime = processedRecords.length > 0 ? processedRecords[processedRecords.length - 1].timestamp : activityStartTime;
-                    const activityTotalDurationMs = activityEndTime - activityStartTime;
+        easyFit.parse(arrayBuffer, (error, data) => {
+          if (error) {
+            console.error('Fehler beim Parsen der FIT-Datei:', error);
+            reject(error);
+            return;
+          }
 
-                    resolve({
-                        records: processedRecords,
-                        startTime: activityStartTime,
-                        endTime: activityEndTime,    
-                        totalDuration: activityTotalDurationMs / 1000,
-                        totalDurationMs: activityTotalDurationMs,
-                        totalDistance: accumulatedTotalDistance,
-                        totalAscent: accumulatedAscent 
-                    });
-                });
-            } catch (e) { /* ... */ reject(e); }
-        };
-        reader.onerror = () => { /* ... */ reject("Fehler beim Lesen der Datei."); };
-        reader.readAsArrayBuffer(file);
-    });
+          const records = data.records;
+          if (!records || records.length === 0) {
+            console.error('Keine Records in der FIT-Datei gefunden.');
+            reject('No records');
+            return;
+          }
+
+          // Startzeit
+          const activityStartTime = records[0].timestamp.getTime();
+
+          let accumulatedTotalDistance = 0;
+          let accumulatedAscent = 0;
+          let lastPoint = null;
+          let lastAltitudeForAscentCalculation = null;
+
+          const processedRecords = records
+            .filter(
+              r =>
+                r.timestamp &&
+                r.position_lat !== undefined &&
+                r.position_long !== undefined
+            )
+            .map((r, index) => {
+              const lat = r.position_lat;
+              const lon = r.position_long;
+
+              const absoluteTimestamp = r.timestamp.getTime();
+              const relativeTimestamp = absoluteTimestamp - activityStartTime;
+
+              // Höhe
+              let currentAltitudeInMeters = null;
+              if (
+                typeof r.altitude === 'number' &&
+                !isNaN(r.altitude)
+              ) {
+                currentAltitudeInMeters = r.altitude;
+              }
+
+              // Geschwindigkeit: EasyFit liefert speed typischerweise in m/s
+              let currentSpeedKmh = 0;
+              if (typeof r.speed === 'number' && !isNaN(r.speed)) {
+                currentSpeedKmh = r.speed * 3.6;
+              }
+
+              // Distanz: wenn EasyFit distance-Feld in Metern liefert, kumulieren
+              let segmentDistance = 0;
+              if (lastPoint && lat != null && lon != null) {
+                segmentDistance = haversineDistance(
+                  lastPoint.lat,
+                  lastPoint.lon,
+                  lat,
+                  lon
+                );
+                accumulatedTotalDistance += segmentDistance;
+              }
+              if (lat != null && lon != null) {
+                lastPoint = { lat, lon };
+              }
+
+              // kumulierte Höhenmeter
+              if (
+                lastAltitudeForAscentCalculation != null &&
+                currentAltitudeInMeters != null &&
+                !isNaN(currentAltitudeInMeters)
+              ) {
+                const altitudeChange =
+                  currentAltitudeInMeters - lastAltitudeForAscentCalculation;
+                if (altitudeChange > 0) {
+                  accumulatedAscent += altitudeChange;
+                }
+              }
+              if (
+                currentAltitudeInMeters != null &&
+                !isNaN(currentAltitudeInMeters)
+              ) {
+                lastAltitudeForAscentCalculation = currentAltitudeInMeters;
+              }
+
+              return {
+                timestamp: absoluteTimestamp,
+                relativeTimestamp: relativeTimestamp,
+                originalTimestamp: r.timestamp,
+                lat: lat,
+                lon: lon,
+                heartrate: r.heart_rate, // Feldname bei EasyFit
+                speed: currentSpeedKmh,
+                power: r.power,
+                altitude: currentAltitudeInMeters,
+                distance: accumulatedTotalDistance,
+                accumulatedascent: accumulatedAscent
+              };
+            })
+            .filter(
+              p =>
+                p.lat != null &&
+                p.lon != null &&
+                p.lat !== 0 &&
+                p.lon !== 0
+            );
+
+          if (processedRecords.length === 0) {
+            console.error('Keine gültigen GPS-Daten gefunden.');
+            reject('No valid GPS data');
+            return;
+          }
+
+          const activityEndTime =
+            processedRecords[processedRecords.length - 1].timestamp;
+          const activityTotalDurationMs =
+            activityEndTime - activityStartTime;
+
+          resolve({
+            records: processedRecords,
+            startTime: activityStartTime,
+            endTime: activityEndTime,
+            totalDuration: activityTotalDurationMs / 1000,
+            totalDurationMs: activityTotalDurationMs,
+            totalDistance: accumulatedTotalDistance,
+            totalAscent: accumulatedAscent
+          });
+        });
+      } catch (e) {
+        console.error('Unerwarteter Fehler beim Parsen der FIT-Datei:', e);
+        reject(e);
+      }
+    };
+
+    reader.onerror = function () {
+      console.error('Fehler beim Lesen der Datei.');
+      reject('Fehler beim Lesen der Datei.');
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
 }
+
 
 function semicirclesToDegrees(semicircles) {
     if (semicircles === null || semicircles === undefined) return null;
