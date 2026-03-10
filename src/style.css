@@ -1,0 +1,54 @@
+body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; color: #333; }
+.container { max-width: 1200px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+h1 { text-align: center; color: #2c3e50; }
+
+.file-inputs, .controls, .data-display { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;}
+.file-inputs label, .controls label { display: block; margin-bottom: 5px; font-weight: bold; }
+.file-inputs input[type="file"] { margin-bottom: 10px; width: calc(100% - 12px); padding: 5px; }
+
+#map { height: 500px; width: 100%; border: 1px solid #ccc; margin-bottom: 20px; border-radius: 5px;}
+
+.slider-container { display: flex; align-items: center; }
+.slider-container input[type="range"] { flex-grow: 1; margin: 0 10px; }
+.slider-container span { min-width: 120px; text-align: center; font-size: 0.9em; }
+
+.data-display table { width: 100%; border-collapse: collapse; }
+.data-display th, .data-display td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+.data-display th { background-color: #e9ecef; }
+.data-display .track-a { color: blue; }
+.data-display .track-b { color: red; }
+
+.chart-container {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    position: relative; /* Wichtig für responsive Canvas */
+    height: 500px;      /* Beispiel: Feste Höhe, passe dies nach Bedarf an */
+    /* oder max-height: 400px; wenn es flexibel sein soll, aber nicht unendlich wachsen */
+    width: 100%;        /* Breite kann oft 100% des Elternelements sein */
+}
+
+/* Optional: Sicherstellen, dass das Canvas selbst die Größe des Containers annimmt */
+#altitudeChart {
+    display: block; /* Verhindert manchmal zusätzliche Abstände */
+    width: 100% !important;  /* Erzwingt Breite, falls nötig */
+    height: 100% !important; /* Erzwingt Höhe, falls nötig */
+}
+
+.loader {
+    border: 5px solid #f3f3f3; /* Light grey */
+    border-top: 5px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 10px auto;
+    display: none; /* Hidden by default */
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+#similarityWarning { color: orange; font-weight: bold; text-align: center; margin-bottom: 10px;}

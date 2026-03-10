@@ -1,0 +1,21 @@
+{
+  "name": "garmin-fit-vergleicher",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "parcel": "^2.15.2"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.0",
+    "fit-file-parser": "^1.21.0",
+    "leaflet": "^1.9.4",
+    "mathjs": "^14.4.0"
+  }
+}
