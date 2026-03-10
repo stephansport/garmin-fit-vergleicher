@@ -1,104 +1,102 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garmin FIT Vergleicher</title>
-    <!-- Die CSS-Datei wird von Parcel automatisch hier eingefügt, wenn sie im JS importiert wird,
-         oder man kann sie direkt verlinken, wenn man sie nicht im JS importieren will.
-         Für Einfachheit verlinken wir sie erstmal direkt. -->
-    <link rel="stylesheet" href="./src/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garmin FIT Vergleicher</title>
+
+  <!-- Direktes Einbinden der CSS-Datei aus dem src-Ordner -->
+  <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Garmin FIT Vergleicher</h1>
+  <div class="container">
+    <h1>Garmin FIT Vergleicher</h1>
 
-        <div class="file-inputs">
-            <label for="fitFileA">Trainingseinheit A (Blau):</label>
-            <input type="file" id="fitFileA" accept=".fit">
-            
-            <label for="fitFileB">Trainingseinheit B (Rot):</label>
-            <input type="file" id="fitFileB" accept=".fit">
-            <div id="loader" class="loader"></div>
-        </div>
-        
-        <div id="similarityWarning"></div>
-        <div id="map"></div>
+    <div class="file-inputs">
+      <label for="fitFileA">Trainingseinheit A (Blau):</label>
+      <input type="file" id="fitFileA" accept=".fit">
 
-        <div class="controls">
-            <label for="timeSlider">Zeitachse:</label>
-            <div class="slider-container">
-                <span id="sliderTimeMin">00:00:00</span>
-                <input type="range" id="timeSlider" min="0" max="100" value="0" disabled>
-                <span id="sliderTimeMax">00:00:00</span>
-            </div>
-            <div style="text-align: center; margin-top: 5px;">Aktuelle Zeit: <span id="currentTimeDisplay">--:--:--</span></div>
-        </div>
-
-        <div class="data-display">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Metrik</th>
-                        <th class="track-a">Training A (Blau)</th>
-                        <th class="track-b">Training B (Rot)</th>
-                    </tr>
-                </thead>
-                <tbody>
-				   <tr>
-				                           <td>Zeit im Track</td>
-				                           <td id="timeA">N/A</td>
-				                           <td id="timeB">N/A</td>
-				                       </tr>
-				                       <!-- NEUE ZEILE FÜR DISTANZ -->
-				                       <tr>
-				                           <td>Distanz (km)</td>
-				                           <td id="distanceA">N/A</td>
-				                           <td id="distanceB">N/A</td>
-				                       </tr>
-				                       <tr>
-				                           <td>Herzfrequenz (bpm)</td>
-				                           <td id="hrA">N/A</td>
-				                           <td id="hrB">N/A</td>
-				                       </tr>
-				                       <tr>
-				                           <td>Geschwindigkeit (km/h)</td>
-				                           <td id="speedA">N/A</td>
-				                           <td id="speedB">N/A</td>
-				                       </tr>
-                                      
-                                    <tr>
-                                        <td>Aktuelle Höhe (m)</td>
-                                        <td id="altitudeA">N/A</td>
-                                        <td id="altitudeB">N/A</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Kumulierte Höhe (m)</td>
-                                        <td id="ascentA">N/A</td>
-                                        <td id="ascentB">N/A</td>
-                                    </tr>
-                                    
-                                       <tr>
-				                           <td>Leistung (Watt)</td>
-				                           <td id="powerA">N/A</td>
-				                           <td id="powerB">N/A</td>
-				                       </tr>
-				                       <tr>
-				                           <td>Ø Leistung bis hier (Watt)</td>
-				                           <td id="avgPowerA">N/A</td>
-				                           <td id="avgPowerB">N/A</td>
-				                       </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="chart-container" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
-            <h2>Höhenprofil</h2>
-            <canvas id="altitudeChart"></canvas>
-        </div>    
+      <label for="fitFileB">Trainingseinheit B (Rot):</label>
+      <input type="file" id="fitFileB" accept=".fit">
+      <div id="loader" class="loader"></div>
     </div>
 
-    <!-- Das JavaScript wird von Parcel gebündelt und hier verlinkt -->
-    <script type="module" src="./src/app.js"></script>
+    <div id="similarityWarning"></div>
+    <div id="map"></div>
+
+    <div class="controls">
+      <label for="timeSlider">Zeitachse:</label>
+      <div class="slider-container">
+        <span id="sliderTimeMin">00:00:00</span>
+        <input type="range" id="timeSlider" min="0" max="100" value="0" disabled>
+        <span id="sliderTimeMax">00:00:00</span>
+      </div>
+      <div style="text-align: center; margin-top: 5px;">
+        Aktuelle Zeit: <span id="currentTimeDisplay">--:--:--</span>
+      </div>
+    </div>
+
+    <div class="data-display">
+      <table>
+        <thead>
+          <tr>
+            <th>Metrik</th>
+            <th class="track-a">Training A (Blau)</th>
+            <th class="track-b">Training B (Rot)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Zeit im Track</td>
+            <td id="timeA">N/A</td>
+            <td id="timeB">N/A</td>
+          </tr>
+          <tr>
+            <td>Distanz (km)</td>
+            <td id="distanceA">N/A</td>
+            <td id="distanceB">N/A</td>
+          </tr>
+          <tr>
+            <td>Herzfrequenz (bpm)</td>
+            <td id="hrA">N/A</td>
+            <td id="hrB">N/A</td>
+          </tr>
+          <tr>
+            <td>Geschwindigkeit (km/h)</td>
+            <td id="speedA">N/A</td>
+            <td id="speedB">N/A</td>
+          </tr>
+          <tr>
+            <td>Aktuelle Höhe (m)</td>
+            <td id="altitudeA">N/A</td>
+            <td id="altitudeB">N/A</td>
+          </tr>
+          <tr>
+            <td>Kumulierte Höhe (m)</td>
+            <td id="ascentA">N/A</td>
+            <td id="ascentB">N/A</td>
+          </tr>
+          <tr>
+            <td>Leistung (Watt)</td>
+            <td id="powerA">N/A</td>
+            <td id="powerB">N/A</td>
+          </tr>
+          <tr>
+            <td>Ø Leistung bis hier (Watt)</td>
+            <td id="avgPowerA">N/A</td>
+            <td id="avgPowerB">N/A</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-container" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+      <h2>Höhenprofil</h2>
+      <canvas id="altitudeChart"></canvas>
+    </div>
+  </div>
+
+  <!-- App-Logik aus src/app.js laden -->
+  <script type="module" src="./src/app.js"></script>
 </body>
 </html>
