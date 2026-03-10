@@ -582,38 +582,6 @@ function checkAndProcessFiles() {
 }
 
 
-function setupSlider() {
-    let minTime, maxTime, durationMs;
-
-    if (processedDataA && processedDataB) {
-        // Der Slider geht von 0 bis zur Dauer der längsten Aktivität
-        durationMs = Math.max(processedDataA.totalDurationMs, processedDataB.totalDurationMs);
-    } else if (processedDataA) {
-        durationMs = processedDataA.totalDurationMs;
-    } else if (processedDataB) {
-        durationMs = processedDataB.totalDurationMs;
-    } else {
-        timeSlider.disabled = true;
-        sliderTimeMinElem.textContent = "00:00:00";
-        sliderTimeMaxElem.textContent = "00:00:00";
-        currentTimeDisplayElem.textContent = "--:--:--";
-        return; // Nichts zu tun, wenn keine Daten da sind
-    }
-
-    console.log("Slider Setup: durationMs=", durationMs);
-    if(processedDataA) console.log("Track A totalDurationMs:", processedDataA.totalDurationMs);
-    if(processedDataB) console.log("Track B totalDurationMs:", processedDataB.totalDurationMs);
-
-    timeSlider.min = 0; 
-    timeSlider.max = durationMs; 
-    timeSlider.value = 0;
-    timeSlider.step = 1000; 
-    timeSlider.disabled = false;
-    
-    sliderTimeMinElem.textContent = formatTime(0, false); 
-    sliderTimeMaxElem.textContent = formatTime(durationMs, false);
-}
-
 function checkTrackSimilarity(dataA, dataB) {
     similarityWarning.textContent = ''; // Zurücksetzen
 
