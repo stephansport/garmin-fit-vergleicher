@@ -1,25 +1,19 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Garmin FIT Vergleicher</title>
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  >
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 
   <!-- Eigenes CSS -->
   <link rel="stylesheet" href="./src/style.css">
 
   <!-- Leaflet JS -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    crossorigin=""
-  ></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
@@ -35,6 +29,17 @@
 <body>
   <div class="container">
     <h1>Garmin FIT Vergleicher</h1>
+
+    <div class="mode-select">
+      <label>
+        <input type="radio" name="mode" value="single" checked>
+        Eine Aktivität analysieren
+      </label>
+      <label>
+        <input type="radio" name="mode" value="compare">
+        Zwei Aktivitäten vergleichen
+      </label>
+    </div>
 
     <div class="file-inputs">
       <label for="fitFileA">Trainingseinheit A (Blau):</label>
@@ -114,13 +119,15 @@
       </table>
     </div>
 
-    <div class="chart-container" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+    <div class="chart-container"
+      style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
       <h2>Höhenprofil</h2>
       <canvas id="altitudeChart"></canvas>
     </div>
   </div>
 
   <!-- App-Logik -->
- <script src="./src/app.js"></script>
+  <script src="./src/app.js"></script>
 </body>
+
 </html>

@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "start": "parcel index.html",
-    "build": "parcel build index.html"
+    "build": "parcel build index.html",
+    "build-github": "parcel build index.html --public-url ./ --dist-dir docs"
   },
   "keywords": [],
   "author": "",

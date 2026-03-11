@@ -8,15 +8,15 @@ const { Chart, LineController, LineElement, PointElement, LinearScale, Title, To
 
 // Wichtig: Chart.js Controller und Skalen registrieren
 Chart.register(
-  LineController,
-  LineElement,
-  PointElement,
-  LinearScale,
-  Title,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  Filler
+    LineController,
+    LineElement,
+    PointElement,
+    LinearScale,
+    Title,
+    Tooltip,
+    Legend,
+    CategoryScale,
+    Filler
 );
 
 
@@ -30,6 +30,9 @@ let processedDataB = null;
 let altitudeChartInstance = null;
 let throttleTimeout = null;
 const THROTTLE_DELAY = 100; // Millisekunden, z.B. 10 Updates pro Sekunde maximal
+let mode = 'single'; // 'single' oder 'compare'
+let modeRadios;
+
 
 
 // DOM Elemente (werden im DOMContentLoaded zugewiesen)
@@ -37,7 +40,7 @@ let fitFileAInput, fitFileBInput, timeSlider, loader, similarityWarning, mapElem
 let sliderTimeMinElem, sliderTimeMaxElem, currentTimeDisplayElem;
 let timeAElem, timeBElem, hrAElem, hrBElem, speedAElem, speedBElem;
 let powerAElem, powerBElem, avgPowerAElem, avgPowerBElem;
-let altitudeAElem, altitudeBElem, ascentAElem, ascentBElem; 
+let altitudeAElem, altitudeBElem, ascentAElem, ascentBElem;
 
 const verticalLinePlugin = {
     id: 'verticalLine',
@@ -48,9 +51,9 @@ const verticalLinePlugin = {
         // Für den Moment lassen wir die Tooltip-Prüfung weg, um den Fehler zu umgehen,
         // da die Linie unabhängig vom Tooltip gezeichnet werden soll.
 
-        const sliderValue = options.sliderValue; 
-        const xAxisType = options.xAxisType;     
-        
+        const sliderValue = options.sliderValue;
+        const xAxisType = options.xAxisType;
+
         if (sliderValue === undefined || xAxisType === undefined || sliderValue === null) { // Auch auf null prüfen
             // console.warn("verticalLinePlugin: sliderValue oder xAxisType nicht definiert oder null.");
             return;
@@ -60,7 +63,7 @@ const verticalLinePlugin = {
 
         if (currentXValue === null || currentXValue === undefined) {
             // console.warn("verticalLinePlugin: currentXValue ist null oder undefined.");
-            return; 
+            return;
         }
 
         let xPosition;
@@ -74,7 +77,7 @@ const verticalLinePlugin = {
 
         if (xPosition === undefined || isNaN(xPosition)) { // Auch auf NaN prüfen
             // console.warn(`verticalLinePlugin: xPosition ist undefined oder NaN für currentXValue ${currentXValue}. Wert könnte außerhalb der Skala liegen.`);
-            return; 
+            return;
         }
 
         const yScale = chart.scales.y;
@@ -86,11 +89,49 @@ const verticalLinePlugin = {
         ctx.moveTo(xPosition, yScale.top);
         ctx.lineTo(xPosition, yScale.bottom);
         ctx.lineWidth = 1;
-        ctx.strokeStyle = '#888'; 
+        ctx.strokeStyle = '#888';
         ctx.stroke();
         ctx.restore(); // Zustand wiederherstellen
     }
 };
+
+function applyModeToUI() {
+  const fitFileBLabel = document.querySelector('label[for="fitFileB"]');
+  const fitFileBInput = document.getElementById('fitFileB');
+  const trackBHeader = document.querySelector('th.track-b');
+  const trackBCells = document.querySelectorAll('td#timeB, td#distanceB, td#hrB, td#speedB, td#altitudeB, td#ascentB, td#powerB, td#avgPowerB');
+
+  if (mode === 'single') {
+    // Datei B und Spalte B ausblenden / deaktivieren
+    if (fitFileBLabel) fitFileBLabel.classList.add('hidden');
+    if (fitFileBInput) {
+      fitFileBInput.classList.add('hidden');
+      fitFileBInput.value = '';
+    }
+    if (trackBHeader) trackBHeader.classList.add('hidden');
+    trackBCells.forEach(td => td.classList.add('hidden'));
+
+    // processedDataB zurücksetzen
+    processedDataB = null;
+    if (hrBElem) hrBElem.textContent = 'N/A';
+    if (speedBElem) speedBElem.textContent = 'N/A';
+    if (powerBElem) powerBElem.textContent = 'N/A';
+    if (avgPowerBElem) avgPowerBElem.textContent = 'N/A';
+    if (altitudeBElem) altitudeBElem.textContent = 'N/A';
+    if (ascentBElem) ascentBElem.textContent = 'N/A';
+    const distanceBElem = document.getElementById('distanceB');
+    if (distanceBElem) distanceBElem.textContent = 'N/A';
+
+    // Hinweis zur Ähnlichkeitsprüfung leeren
+    if (similarityWarning) similarityWarning.textContent = '';
+  } else {
+    // Vergleichsmodus: alles anzeigen
+    if (fitFileBLabel) fitFileBLabel.classList.remove('hidden');
+    if (fitFileBInput) fitFileBInput.classList.remove('hidden');
+    if (trackBHeader) trackBHeader.classList.remove('hidden');
+    trackBCells.forEach(td => td.classList.remove('hidden'));
+  }
+}
 
 function initMap() {
     if (map) { map.remove(); map = null; }
@@ -117,68 +158,68 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 async function parseFitFile(file, activityId) {
-  const backendUrl = 'https://garmin-fit-backend.onrender.com/api/parse-fit';
-  // URL an deinen tatsächlichen Render-Service anpassen
+    const backendUrl = 'https://garmin-fit-backend.onrender.com/api/parse-fit';
+    // URL an deinen tatsächlichen Render-Service anpassen
 
-  if (!file) {
-    throw new Error('Keine Datei übergeben');
-  }
-
-  const formData = new FormData();
-  formData.append('file', file);
-
-  let response;
-  try {
-    response = await fetch(backendUrl, {
-      method: 'POST',
-      body: formData
-    });
-  } catch (err) {
-    console.error('Netzwerk- oder Verbindungsfehler zum Backend:', err);
-    throw new Error('Keine Verbindung zum FIT-Backend möglich');
-  }
-
-  if (!response.ok) {
-    let errMsg = `Backend error: ${response.status}`;
-    try {
-      const errJson = await response.json();
-      if (errJson && errJson.error) {
-        errMsg = errJson.error;
-      }
-    } catch (_) {
-      // JSON-Parse-Fehler ignorieren, Standardtext verwenden
+    if (!file) {
+        throw new Error('Keine Datei übergeben');
     }
-    throw new Error(errMsg);
-  }
 
-  const data = await response.json();
+    const formData = new FormData();
+    formData.append('file', file);
 
-  // Erwartete Struktur vom Backend:
-  // {
-  //   records: [...],
-  //   startTime,
-  //   endTime,
-  //   totalDuration,
-  //   totalDurationMs,
-  //   totalDistance,
-  //   totalAscent
-  // }
+    let response;
+    try {
+        response = await fetch(backendUrl, {
+            method: 'POST',
+            body: formData
+        });
+    } catch (err) {
+        console.error('Netzwerk- oder Verbindungsfehler zum Backend:', err);
+        throw new Error('Keine Verbindung zum FIT-Backend möglich');
+    }
 
-  if (!data || !Array.isArray(data.records) || data.records.length === 0) {
-    throw new Error('Backend lieferte keine gültigen FIT-Daten');
-  }
+    if (!response.ok) {
+        let errMsg = `Backend error: ${response.status}`;
+        try {
+            const errJson = await response.json();
+            if (errJson && errJson.error) {
+                errMsg = errJson.error;
+            }
+        } catch (_) {
+            // JSON-Parse-Fehler ignorieren, Standardtext verwenden
+        }
+        throw new Error(errMsg);
+    }
 
-  // Direkt zurückgeben; dein bestehender Code arbeitet bereits mit
-  // data.records, data.totalDurationMs, data.totalDistance, data.totalAscent usw.
-  return {
-    records: data.records,
-    startTime: data.startTime,
-    endTime: data.endTime,
-    totalDuration: data.totalDuration,
-    totalDurationMs: data.totalDurationMs,
-    totalDistance: data.totalDistance,
-    totalAscent: data.totalAscent
-  };
+    const data = await response.json();
+
+    // Erwartete Struktur vom Backend:
+    // {
+    //   records: [...],
+    //   startTime,
+    //   endTime,
+    //   totalDuration,
+    //   totalDurationMs,
+    //   totalDistance,
+    //   totalAscent
+    // }
+
+    if (!data || !Array.isArray(data.records) || data.records.length === 0) {
+        throw new Error('Backend lieferte keine gültigen FIT-Daten');
+    }
+
+    // Direkt zurückgeben; dein bestehender Code arbeitet bereits mit
+    // data.records, data.totalDurationMs, data.totalDistance, data.totalAscent usw.
+    return {
+        records: data.records,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        totalDuration: data.totalDuration,
+        totalDurationMs: data.totalDurationMs,
+        totalDistance: data.totalDistance,
+        totalAscent: data.totalAscent
+    };
 }
 
 
@@ -199,7 +240,7 @@ function semicirclesToDegrees(semicircles) {
 function setupAltitudeChart() {
     if (!processedDataA && !processedDataB) {
         if (altitudeChartInstance) {
-            altitudeChartInstance.destroy(); 
+            altitudeChartInstance.destroy();
             altitudeChartInstance = null;
             console.log("Höhendiagramm zerstört, da keine Daten vorhanden.");
         }
@@ -225,8 +266,8 @@ function setupAltitudeChart() {
             borderColor: 'blue',
             backgroundColor: 'rgba(0, 0, 255, 0.05)',
             fill: 'origin',
-            tension: 0.2, 
-            pointRadius: 0, 
+            tension: 0.2,
+            pointRadius: 0,
             borderWidth: 1.5,
             order: 2 // Sorge dafür, dass die Linie im Hintergrund ist
         });
@@ -253,12 +294,12 @@ function setupAltitudeChart() {
             order: 2
         });
     }
-    
+
     // Zusätzliche Datasets für die beweglichen Punkte und ihre Haarlinien
     // Dataset für Position A (Punkt)
     datasets.push({
         label: 'Position A',
-        data: [], 
+        data: [],
         borderColor: 'blue',
         backgroundColor: 'blue',
         pointRadius: 6,
@@ -280,13 +321,13 @@ function setupAltitudeChart() {
     // Dataset für Position B (Punkt)
     datasets.push({
         label: 'Position B',
-        data: [], 
+        data: [],
         borderColor: 'red',
         backgroundColor: 'red',
         pointRadius: 6,
         pointHoverRadius: 8,
         showLine: false,
-        order: 0 
+        order: 0
     });
     // Dataset für Haarlinie B
     datasets.push({
@@ -299,14 +340,14 @@ function setupAltitudeChart() {
         order: 1
     });
 
-    if (datasets.length === 0) { 
+    if (datasets.length === 0) {
         if (altitudeChartInstance) {
             altitudeChartInstance.destroy();
             altitudeChartInstance = null;
         }
         return;
     }
-    
+
     const chartData = { datasets: datasets };
 
     // Finde min und max Höhe über alle Datasets für eine bessere Skalierung
@@ -314,25 +355,25 @@ function setupAltitudeChart() {
     // Nur die ersten beiden Datasets (die Höhenlinien) für die Skalierung berücksichtigen
     datasets.slice(0, 2).forEach(dataset => {
         dataset.data.forEach(point => {
-            if (point.y !== null && point.y !== undefined && !isNaN(point.y)) { 
+            if (point.y !== null && point.y !== undefined && !isNaN(point.y)) {
                 if (minY === null || point.y < minY) minY = point.y;
                 if (maxY === null || point.y > maxY) maxY = point.y;
             }
         });
     });
 
-    let yAxisPaddingValue = 20; 
+    let yAxisPaddingValue = 20;
     if (minY !== null && maxY !== null) {
         const range = maxY - minY;
         if (range > 0) yAxisPaddingValue = Math.max(10, range * 0.05);
         else yAxisPaddingValue = 10;
     }
-    
+
     let finalMinY = minY !== null ? Math.floor(minY - yAxisPaddingValue) : 0;
     let finalMaxY = maxY !== null ? Math.ceil(maxY + yAxisPaddingValue) : 400;
 
     if (finalMinY !== undefined && finalMaxY !== undefined && finalMinY === finalMaxY) {
-        finalMinY -= 10; 
+        finalMinY -= 10;
         finalMaxY += 10;
     }
 
@@ -341,18 +382,18 @@ function setupAltitudeChart() {
         data: chartData,
         options: {
             responsive: true,
-            maintainAspectRatio: false, 
+            maintainAspectRatio: false,
             animation: { duration: 0 },
             scales: {
                 x: {
-                    type: 'linear', 
+                    type: 'linear',
                     title: { display: true, text: commonXAxisLabel },
                     ticks: { autoSkip: true, maxTicksLimit: 20 }
                 },
                 y: {
                     title: { display: true, text: 'Höhe (m)' },
-                    beginAtZero: false, 
-                    min: finalMinY, 
+                    beginAtZero: false,
+                    min: finalMinY,
                     max: finalMaxY,
                     ticks: { autoSkip: true, maxTicksLimit: 10 }
                 }
@@ -361,16 +402,16 @@ function setupAltitudeChart() {
             plugins: {
                 legend: {
                     labels: {
-                        filter: function(legendItem, chartData) {
+                        filter: function (legendItem, chartData) {
                             return legendItem.datasetIndex < 2 && (legendItem.text && legendItem.text.startsWith('Höhe'));
                         }
                     }
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             let label = context.dataset.label || '';
-                            if(label.startsWith('Position') || label.startsWith('Haarlinie')) return null; // Verstecke Tooltips für Punkte/Linien
+                            if (label.startsWith('Position') || label.startsWith('Haarlinie')) return null; // Verstecke Tooltips für Punkte/Linien
                             if (label) label += ': ';
                             if (context.parsed.y !== null) label += `${context.parsed.y.toFixed(0)} m Höhe`;
                             if (context.parsed.x !== null) label += ` bei ${context.parsed.x.toFixed(2)} ${commonXAxisType === 'distance' ? 'km' : 's'}`;
@@ -385,9 +426,9 @@ function setupAltitudeChart() {
     const canvasElement = document.getElementById('altitudeChart');
     if (!canvasElement) { console.error("Canvas Element 'altitudeChart' nicht gefunden!"); return; }
     const ctx = canvasElement.getContext('2d');
-    
+
     if (altitudeChartInstance) {
-        altitudeChartInstance.destroy(); 
+        altitudeChartInstance.destroy();
     }
     altitudeChartInstance = new Chart(ctx, config);
     console.log("Höhendiagramm erfolgreich erstellt/aktualisiert.");
@@ -396,8 +437,8 @@ function setupAltitudeChart() {
 
 function checkAndProcessFiles() {
     console.log("--- Entering checkAndProcessFiles ---");
-    
-    
+
+
 
     // Bestimme, welche Daten für die Anzeige verwendet werden sollen
     let activeDataA = processedDataA;
@@ -413,8 +454,8 @@ function checkAndProcessFiles() {
 
     if (processedDataA || processedDataB) { // Nur wenn mindestens ein Datensatz da ist
         // ... (Existierender Code zum Zeichnen der Polylinien, Bounds, Marker) ...
-        
-        setupSlider(); 
+
+        setupSlider();
         setupAltitudeChart(); // NEU: Höhendiagramm erstellen/aktualisieren
         // updateFromSlider(); 
         console.log("setupSlider, setupAltitudeChart und updateFromSlider aufgerufen.");
@@ -476,7 +517,7 @@ function checkAndProcessFiles() {
 
     if (activeDataA) {
         const latLngsA = (activeDataA.records || []).map(p => [p.lat, p.lon]);
-        console.log("latLngsA length:", latLngsA.length, "First 3 A:", latLngsA.slice(0,3));
+        console.log("latLngsA length:", latLngsA.length, "First 3 A:", latLngsA.slice(0, 3));
         if (latLngsA.length > 0) {
             polylineA = L.polyline(latLngsA, { color: 'blue', weight: 3, opacity: 0.7 }).addTo(map);
             console.log("Polyline A zur Karte hinzugefügt.");
@@ -484,12 +525,12 @@ function checkAndProcessFiles() {
         } else {
             console.warn("Keine Datenpunkte für Polyline A.");
         }
-        markerA = L.circleMarker([0,0], { radius: 8, color: 'white', fillColor: 'blue', fillOpacity: 1, weight:2 });
+        markerA = L.circleMarker([0, 0], { radius: 8, color: 'white', fillColor: 'blue', fillOpacity: 1, weight: 2 });
     }
 
     if (activeDataB) {
         const latLngsB = (activeDataB.records || []).map(p => [p.lat, p.lon]);
-        console.log("latLngsB length:", latLngsB.length, "First 3 B:", latLngsB.slice(0,3));
+        console.log("latLngsB length:", latLngsB.length, "First 3 B:", latLngsB.slice(0, 3));
         if (latLngsB.length > 0) {
             polylineB = L.polyline(latLngsB, { color: 'red', weight: 3, opacity: 0.7 }).addTo(map);
             console.log("Polyline B zur Karte hinzugefügt.");
@@ -501,22 +542,22 @@ function checkAndProcessFiles() {
         } else {
             console.warn("Keine Datenpunkte für Polyline B.");
         }
-        markerB = L.circleMarker([0,0], { radius: 8, color: 'white', fillColor: 'red', fillOpacity: 1, weight:2 });
+        markerB = L.circleMarker([0, 0], { radius: 8, color: 'white', fillColor: 'red', fillOpacity: 1, weight: 2 });
     }
-    
+
     console.log("Calculated bounds object:", bounds);
     if (bounds && bounds.isValid()) {
-        map.fitBounds(bounds, {padding: [30,30]});
-        map.invalidateSize(); 
+        map.fitBounds(bounds, { padding: [30, 30] });
+        map.invalidateSize();
         console.log("map.fitBounds mit validen Bounds aufgerufen und invalidateSize() ausgeführt:", bounds.toBBoxString());
     } else {
         console.warn("Keine gültigen Koordinaten zum Zoomen gefunden. Karte bleibt auf Standardansicht.");
     }
-    
+
     console.log("Marker A und B Logik initialisiert (noch nicht zur Karte hinzugefügt).");
 
-    setupSlider(); 
-    updateFromSlider(); 
+    setupSlider();
+    updateFromSlider();
     console.log("setupSlider und updateFromSlider aufgerufen.");
 
     console.log("--- Exiting checkAndProcessFiles ---");
@@ -539,7 +580,7 @@ function checkTrackSimilarity(dataA, dataB) {
     }
 
 
-    const startA = dataA.records[0]; 
+    const startA = dataA.records[0];
     const startB = dataB.records[0];
     // Sicherstellen, dass startA und startB Koordinaten haben
     if (!startA || startA.lat === null || startA.lon === null || !startB || startB.lat === null || startB.lon === null) {
@@ -551,10 +592,10 @@ function checkTrackSimilarity(dataA, dataB) {
 
     const startDistanceKm = haversineDistance(startA.lat, startA.lon, startB.lat, startB.lon);
     const distanceThresholdKm = 2.0;
-    
+
     // dataA.totalDistance sollte jetzt sicher eine Zahl sein.
     const distanceRatio = dataA.totalDistance > 0 ? dataB.totalDistance / dataA.totalDistance : 0;
-    const distanceRatioThresholdMin = 0.8; 
+    const distanceRatioThresholdMin = 0.8;
     const distanceRatioThresholdMax = 1.25;
 
     if (startDistanceKm > distanceThresholdKm) {
@@ -562,11 +603,11 @@ function checkTrackSimilarity(dataA, dataB) {
         return false;
     }
     if (!(distanceRatio >= distanceRatioThresholdMin && distanceRatio <= distanceRatioThresholdMax)) {
-         // toFixed sollte hier sicher sein, da wir oben geprüft haben, dass totalDistance Zahlen sind
-         similarityWarning.textContent = `Warnung: Distanzen (${dataA.totalDistance.toFixed(1)}km vs ${dataB.totalDistance.toFixed(1)}km) unterschiedlich.`; 
-         return false;
+        // toFixed sollte hier sicher sein, da wir oben geprüft haben, dass totalDistance Zahlen sind
+        similarityWarning.textContent = `Warnung: Distanzen (${dataA.totalDistance.toFixed(1)}km vs ${dataB.totalDistance.toFixed(1)}km) unterschiedlich.`;
+        return false;
     }
-    similarityWarning.textContent = "Strecken ähnlich."; 
+    similarityWarning.textContent = "Strecken ähnlich.";
     return true;
 }
 
@@ -608,16 +649,16 @@ function setupSlider() {
     }
 
     console.log("Slider Setup: durationMs=", durationMs);
-    if(processedDataA) console.log("Track A totalDurationMs:", processedDataA.totalDurationMs);
-    if(processedDataB) console.log("Track B totalDurationMs:", processedDataB.totalDurationMs);
+    if (processedDataA) console.log("Track A totalDurationMs:", processedDataA.totalDurationMs);
+    if (processedDataB) console.log("Track B totalDurationMs:", processedDataB.totalDurationMs);
 
-    timeSlider.min = 0; 
-    timeSlider.max = durationMs; 
+    timeSlider.min = 0;
+    timeSlider.max = durationMs;
     timeSlider.value = 0;
-    timeSlider.step = 1000; 
+    timeSlider.step = 1000;
     timeSlider.disabled = false;
-    
-    sliderTimeMinElem.textContent = formatTime(0, false); 
+
+    sliderTimeMinElem.textContent = formatTime(0, false);
     sliderTimeMaxElem.textContent = formatTime(durationMs, false);
 }
 
@@ -636,7 +677,7 @@ function findRecordAtOrBeforeRelativeTime(records, targetRelativeTimestamp) {
         if (record.relativeTimestamp <= targetRelativeTimestamp) {
             bestMatch = record;
         } else {
-            break; 
+            break;
         }
     }
     return bestMatch;
@@ -667,26 +708,26 @@ function updateFromSlider() {
         updateDataDisplay('A', recordA, 0, currentRelativeTime);
         if (markerA) {
             if (recordA && recordA.lat !== null && recordA.lon !== null) {
-                markerA.setLatLng([recordA.lat, recordA.lon]); 
+                markerA.setLatLng([recordA.lat, recordA.lon]);
                 if (!map.hasLayer(markerA)) markerA.addTo(map);
-            } else { 
-                if (map.hasLayer(markerA)) map.removeLayer(markerA); 
+            } else {
+                if (map.hasLayer(markerA)) map.removeLayer(markerA);
             }
         }
     } else {
         updateDataDisplay('A', null, 0, currentRelativeTime);
         if (markerA && map.hasLayer(markerA)) map.removeLayer(markerA);
     }
-    
+
     if (processedDataB) {
         recordB = findRecordAtOrBeforeRelativeTime(processedDataB.records, currentRelativeTime);
         updateDataDisplay('B', recordB, 0, currentRelativeTime);
         if (markerB) {
             if (recordB && recordB.lat !== null && recordB.lon !== null) {
-                markerB.setLatLng([recordB.lat, recordB.lon]); 
+                markerB.setLatLng([recordB.lat, recordB.lon]);
                 if (!map.hasLayer(markerB)) markerB.addTo(map);
-            } else { 
-                if (map.hasLayer(markerB)) map.removeLayer(markerB); 
+            } else {
+                if (map.hasLayer(markerB)) map.removeLayer(markerB);
             }
         }
     } else {
@@ -702,7 +743,7 @@ function updateFromSlider() {
         const hairlineAIndex = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Haarlinie A');
         const posBIndex = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Position B');
         const hairlineBIndex = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Haarlinie B');
-        
+
         let pointDataA = [], hairlineDataA = [], pointDataB = [], hairlineDataB = [];
 
         if (recordA && posAIndex !== -1 && hairlineAIndex !== -1) {
@@ -713,7 +754,7 @@ function updateFromSlider() {
                 hairlineDataA = [{ x: xVal, y: altitudeChartInstance.scales.y.min }, { x: xVal, y: yVal }];
             }
         }
-        
+
         if (recordB && posBIndex !== -1 && hairlineBIndex !== -1) {
             const xVal = xAxisType === 'distance' ? recordB.distance : recordB.relativeTimestamp / 1000;
             const yVal = recordB.altitude;
@@ -722,15 +763,15 @@ function updateFromSlider() {
                 hairlineDataB = [{ x: xVal, y: altitudeChartInstance.scales.y.min }, { x: xVal, y: yVal }];
             }
         }
-        
+
         if (posAIndex !== -1) altitudeChartInstance.data.datasets[posAIndex].data = pointDataA;
         if (hairlineAIndex !== -1) altitudeChartInstance.data.datasets[hairlineAIndex].data = hairlineDataA;
         if (posBIndex !== -1) altitudeChartInstance.data.datasets[posBIndex].data = pointDataB;
         if (hairlineBIndex !== -1) altitudeChartInstance.data.datasets[hairlineBIndex].data = hairlineDataB;
 
-        altitudeChartInstance.update('none'); 
+        altitudeChartInstance.update('none');
     }
-    
+
     // DEBUGGING
     // console.log(`Slider RelTime: ${currentRelativeTime/1000}s, Record A valid: ${!!recordA}, Record B valid: ${!!recordB}`);
 }
@@ -763,7 +804,7 @@ function updateDataDisplay(trackId, record, trackStartTime_relative, currentRela
         Object.values(dataElems).forEach(el => { if (el) el.textContent = "N/A"; });
         return;
     }
-    
+
     let displayRecord = record;
     let isTrackFinished = currentRelativeTimeOnSlider > fullData.totalDurationMs;
 
@@ -784,7 +825,7 @@ function updateDataDisplay(trackId, record, trackStartTime_relative, currentRela
         if (dataElems.hr) dataElems.hr.textContent = displayRecord.heart_rate !== undefined ? displayRecord.heart_rate : "N/A";
         if (dataElems.speed) dataElems.speed.textContent = displayRecord.speed !== undefined ? parseFloat(displayRecord.speed).toFixed(1) : "N/A";
         if (dataElems.power) dataElems.power.textContent = displayRecord.power !== undefined ? displayRecord.power : "N/A";
-        
+
         const avgPowerTimestamp = isTrackFinished ? fullData.totalDurationMs : displayRecord.relativeTimestamp;
         const avgPower = calculateAveragePower(fullData.records, avgPowerTimestamp, true);
         if (dataElems.avgPower) dataElems.avgPower.textContent = avgPower > 0 ? avgPower.toFixed(1) : "N/A";
@@ -797,7 +838,7 @@ function assignDOMElements() {
     // ... (existierende Zuweisungen) ...
     // timeAElem, hrAElem etc. sind schon da.
     // Wir brauchen jetzt noch distanceA und distanceB (werden im HTML hinzugefügt)
-    
+
     // Stelle sicher, dass die Funktion true zurückgibt, wenn alle Elemente gefunden wurden
     // (Der bestehende Code für die Elementprüfung bleibt gleich)
     fitFileAInput = document.getElementById('fitFileA'); fitFileBInput = document.getElementById('fitFileB');
@@ -813,6 +854,8 @@ function assignDOMElements() {
     timeAElem = document.getElementById('timeA'); timeBElem = document.getElementById('timeB');
     altitudeAElem = document.getElementById('altitudeA'); altitudeBElem = document.getElementById('altitudeB');
     ascentAElem = document.getElementById('ascentA'); ascentBElem = document.getElementById('ascentB');
+    modeRadios = document.querySelectorAll('input[name="mode"]');
+
     // mapElement wird in initMap geholt.
 
     // Wichtig: HTML muss um Distanz-Zellen erweitert werden!
@@ -826,30 +869,40 @@ function assignDOMElements() {
         document.getElementById('distanceA'), document.getElementById('distanceB'), // Für die Prüfung
         altitudeAElem, altitudeBElem, ascentAElem, ascentBElem // Für die Prüfung
     ];
-    
+
     const allElements = [
         fitFileAInput, fitFileBInput, timeSlider, loader, similarityWarning, sliderTimeMinElem, sliderTimeMaxElem,
         currentTimeDisplayElem, document.getElementById('map'), ...essentialDisplayElements
     ];
 
-    for (const el of allElements) { 
-        if (!el) { 
-            console.error("Kritisches DOM-Element nicht gefunden bei Zuweisung:", el === mapElement ? "map" : el); 
+    for (const el of allElements) {
+        if (!el) {
+            console.error("Kritisches DOM-Element nicht gefunden bei Zuweisung:", el === mapElement ? "map" : el);
             // Versuche, die ID zu finden, die fehlt
-            const ids = ["fitFileA", "fitFileB", "timeSlider", "loader", "similarityWarning", 
-                         "sliderTimeMin", "sliderTimeMax", "currentTimeDisplay", "map",
-                         "timeA", "timeB", "hrA", "hrB", "speedA", "speedB", 
-                         "powerA", "powerB", "avgPowerA", "avgPowerB"];
+            const ids = ["fitFileA", "fitFileB", "timeSlider", "loader", "similarityWarning",
+                "sliderTimeMin", "sliderTimeMax", "currentTimeDisplay", "map",
+                "timeA", "timeB", "hrA", "hrB", "speedA", "speedB",
+                "powerA", "powerB", "avgPowerA", "avgPowerB"];
             for (const id of ids) {
                 if (!document.getElementById(id)) {
                     console.error(` Fehlendes Element hat möglicherweise die ID: ${id}`);
                     break;
                 }
             }
-            alert("Einige UI-Elemente konnten nicht geladen werden. Bitte die HTML-Struktur und IDs prüfen."); 
-            return false; 
-        } 
+            alert("Einige UI-Elemente konnten nicht geladen werden. Bitte die HTML-Struktur und IDs prüfen.");
+            return false;
+        }
     }
+
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            mode = radio.value; // 'single' oder 'compare'
+            applyModeToUI();
+            checkAndProcessFiles(); // Anzeige ggf. neu aufbauen
+        });
+    });
+
+
     return true;
 }
 
@@ -862,6 +915,9 @@ function initializeAppLogic() {
         console.error("Initialisierung der Karte fehlgeschlagen. App kann nicht initialisiert werden.");
         return;
     }
+    // Modus initial anwenden
+    applyModeToUI();
+
     fitFileAInput.addEventListener('change', async (event) => {
         const file = event.target.files[0]; if (file) {
             loader.style.display = 'block'; similarityWarning.textContent = '';
@@ -878,14 +934,14 @@ function initializeAppLogic() {
             loader.style.display = 'none';
         }
     });
-	timeSlider.addEventListener('input', () => {
-	    if (!throttleTimeout) {
-	        throttleTimeout = setTimeout(() => {
-	            updateFromSlider();
-	            throttleTimeout = null;
-	        }, THROTTLE_DELAY);
-	    }
-	});
+    timeSlider.addEventListener('input', () => {
+        if (!throttleTimeout) {
+            throttleTimeout = setTimeout(() => {
+                updateFromSlider();
+                throttleTimeout = null;
+            }, THROTTLE_DELAY);
+        }
+    });
     console.log("App-Logik erfolgreich initialisiert und Event-Listener angehängt.");
 }
 
