@@ -41,6 +41,11 @@ let sliderTimeMinElem, sliderTimeMaxElem, currentTimeDisplayElem;
 let timeAElem, timeBElem, hrAElem, hrBElem, speedAElem, speedBElem;
 let powerAElem, powerBElem, avgPowerAElem, avgPowerBElem;
 let altitudeAElem, altitudeBElem, ascentAElem, ascentBElem;
+let rangeStartSlider, rangeEndSlider;
+let rangeStartLabel, rangeEndLabel;
+let rangeHrAElem, rangeDistanceAElem, rangePowerAElem, rangeAscentAElem;
+let rangeMaxPowerDurationsAElem;
+
 
 const verticalLinePlugin = {
     id: 'verticalLine',
@@ -96,41 +101,41 @@ const verticalLinePlugin = {
 };
 
 function applyModeToUI() {
-  const fitFileBLabel = document.querySelector('label[for="fitFileB"]');
-  const fitFileBInput = document.getElementById('fitFileB');
-  const trackBHeader = document.querySelector('th.track-b');
-  const trackBCells = document.querySelectorAll('td#timeB, td#distanceB, td#hrB, td#speedB, td#altitudeB, td#ascentB, td#powerB, td#avgPowerB');
+    const fitFileBLabel = document.querySelector('label[for="fitFileB"]');
+    const fitFileBInput = document.getElementById('fitFileB');
+    const trackBHeader = document.querySelector('th.track-b');
+    const trackBCells = document.querySelectorAll('td#timeB, td#distanceB, td#hrB, td#speedB, td#altitudeB, td#ascentB, td#powerB, td#avgPowerB');
 
-  if (mode === 'single') {
-    // Datei B und Spalte B ausblenden / deaktivieren
-    if (fitFileBLabel) fitFileBLabel.classList.add('hidden');
-    if (fitFileBInput) {
-      fitFileBInput.classList.add('hidden');
-      fitFileBInput.value = '';
+    if (mode === 'single') {
+        // Datei B und Spalte B ausblenden / deaktivieren
+        if (fitFileBLabel) fitFileBLabel.classList.add('hidden');
+        if (fitFileBInput) {
+            fitFileBInput.classList.add('hidden');
+            fitFileBInput.value = '';
+        }
+        if (trackBHeader) trackBHeader.classList.add('hidden');
+        trackBCells.forEach(td => td.classList.add('hidden'));
+
+        // processedDataB zurücksetzen
+        processedDataB = null;
+        if (hrBElem) hrBElem.textContent = 'N/A';
+        if (speedBElem) speedBElem.textContent = 'N/A';
+        if (powerBElem) powerBElem.textContent = 'N/A';
+        if (avgPowerBElem) avgPowerBElem.textContent = 'N/A';
+        if (altitudeBElem) altitudeBElem.textContent = 'N/A';
+        if (ascentBElem) ascentBElem.textContent = 'N/A';
+        const distanceBElem = document.getElementById('distanceB');
+        if (distanceBElem) distanceBElem.textContent = 'N/A';
+
+        // Hinweis zur Ähnlichkeitsprüfung leeren
+        if (similarityWarning) similarityWarning.textContent = '';
+    } else {
+        // Vergleichsmodus: alles anzeigen
+        if (fitFileBLabel) fitFileBLabel.classList.remove('hidden');
+        if (fitFileBInput) fitFileBInput.classList.remove('hidden');
+        if (trackBHeader) trackBHeader.classList.remove('hidden');
+        trackBCells.forEach(td => td.classList.remove('hidden'));
     }
-    if (trackBHeader) trackBHeader.classList.add('hidden');
-    trackBCells.forEach(td => td.classList.add('hidden'));
-
-    // processedDataB zurücksetzen
-    processedDataB = null;
-    if (hrBElem) hrBElem.textContent = 'N/A';
-    if (speedBElem) speedBElem.textContent = 'N/A';
-    if (powerBElem) powerBElem.textContent = 'N/A';
-    if (avgPowerBElem) avgPowerBElem.textContent = 'N/A';
-    if (altitudeBElem) altitudeBElem.textContent = 'N/A';
-    if (ascentBElem) ascentBElem.textContent = 'N/A';
-    const distanceBElem = document.getElementById('distanceB');
-    if (distanceBElem) distanceBElem.textContent = 'N/A';
-
-    // Hinweis zur Ähnlichkeitsprüfung leeren
-    if (similarityWarning) similarityWarning.textContent = '';
-  } else {
-    // Vergleichsmodus: alles anzeigen
-    if (fitFileBLabel) fitFileBLabel.classList.remove('hidden');
-    if (fitFileBInput) fitFileBInput.classList.remove('hidden');
-    if (trackBHeader) trackBHeader.classList.remove('hidden');
-    trackBCells.forEach(td => td.classList.remove('hidden'));
-  }
 }
 
 function initMap() {
@@ -492,7 +497,7 @@ function checkAndProcessFiles() {
     console.log("Map ist initialisiert oder war bereits vorhanden.");
 
     // Ähnlichkeitsprüfung nur, wenn beide da sind
-    if (activeDataA && activeDataB) {
+    if (mode === 'compare' && activeDataA && activeDataB) {
         if (typeof activeDataA.totalDistance === 'number' && typeof activeDataB.totalDistance === 'number') {
             console.log("Rufe checkTrackSimilarity auf.");
             checkTrackSimilarity(activeDataA, activeDataB);
@@ -503,7 +508,7 @@ function checkAndProcessFiles() {
         console.log("Data A totalDistance:", activeDataA.totalDistance);
         console.log("Data B totalDistance:", activeDataB.totalDistance);
     } else {
-        similarityWarning.textContent = ''; // Keine Ähnlichkeitsprüfung bei nur einem Track
+        similarityWarning.textContent = ''; // Keine Ähnlichkeitsprüfung bei nur einem Track oder im Analysemodus
     }
 
     // Alte Polylinien und Marker entfernen
@@ -660,6 +665,28 @@ function setupSlider() {
 
     sliderTimeMinElem.textContent = formatTime(0, false);
     sliderTimeMaxElem.textContent = formatTime(durationMs, false);
+
+    // Nur im Einzelmodus sinnvoll
+    if (mode === 'single' && rangeStartSlider && rangeEndSlider) {
+        rangeStartSlider.min = 0;
+        rangeStartSlider.max = durationMs;
+        rangeStartSlider.value = 0;
+        rangeStartSlider.step = 1000;
+        rangeStartSlider.disabled = false;
+
+        rangeEndSlider.min = 0;
+        rangeEndSlider.max = durationMs;
+        rangeEndSlider.value = durationMs;
+        rangeEndSlider.step = 1000;
+        rangeEndSlider.disabled = false;
+
+        if (rangeStartLabel) rangeStartLabel.textContent = formatTime(0, false);
+        if (rangeEndLabel) rangeEndLabel.textContent = formatTime(durationMs, false);
+    } else if (rangeStartSlider && rangeEndSlider) {
+        rangeStartSlider.disabled = true;
+        rangeEndSlider.disabled = true;
+    }
+
 }
 
 function findRecordAtOrBeforeTime(records, targetTimestamp) {
@@ -692,6 +719,175 @@ function calculateAveragePower(records, currentTimestamp, isRelative = false) {
     if (relevantRecords.length === 0) return 0;
     const powers = relevantRecords.map(r => r.power);
     return math.mean(powers);
+}
+
+function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
+    const result = { '5': null, '10': null, '20': null, '60': null };
+
+    if (!records || records.length === 0) {
+        return result;
+    }
+
+    const inRange = records.filter(r =>
+        r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
+    );
+
+    if (inRange.length === 0) {
+        return result;
+    }
+
+    const sectionDurationSec =
+        (inRange[inRange.length - 1].relativeTimestamp - inRange[0].relativeTimestamp) / 1000;
+
+    const durations = [
+        { key: '5', seconds: 5 * 60 },
+        { key: '10', seconds: 10 * 60 },
+        { key: '20', seconds: 20 * 60 },
+        { key: '60', seconds: 60 * 60 }
+    ];
+
+    durations.forEach(d => {
+        const T = d.seconds;
+
+        if (sectionDurationSec < T) {
+            const pValues = inRange
+                .map(r => r.power)
+                .filter(v => typeof v === 'number');
+            if (pValues.length === 0) {
+                result[d.key] = null;
+            } else {
+                const avg = pValues.reduce((a, b) => a + b, 0) / pValues.length;
+                result[d.key] = avg;
+            }
+            return;
+        }
+
+        let maxAvg = null;
+        let iStart = 0;
+
+        for (let i = 0; i < inRange.length; i++) {
+            const tEnd = inRange[i].relativeTimestamp;
+            const tStart = tEnd - T * 1000;
+
+            while (iStart < inRange.length && inRange[iStart].relativeTimestamp < tStart) {
+                iStart++;
+            }
+            if (iStart > i) continue;
+
+            const windowRecords = inRange.slice(iStart, i + 1);
+            const pWin = windowRecords
+                .map(r => r.power)
+                .filter(v => typeof v === 'number');
+            if (pWin.length === 0) continue;
+
+            const avgWin = pWin.reduce((a, b) => a + b, 0) / pWin.length;
+            if (maxAvg === null || avgWin > maxAvg) {
+                maxAvg = avgWin;
+            }
+        }
+
+        result[d.key] = maxAvg;
+    });
+
+    return result;
+}
+
+function updateRangeStats() {
+  if (
+    mode !== 'single' ||
+    !processedDataA ||
+    !processedDataA.records ||
+    processedDataA.records.length === 0 ||
+    !rangeStartSlider ||
+    !rangeEndSlider
+  ) {
+    if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+    if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+    if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
+    if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
+    if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
+    return;
+  }
+
+  const startMs = parseInt(rangeStartSlider.value);
+  const endMs   = parseInt(rangeEndSlider.value);
+
+  if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
+    if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+    if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+    if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
+    if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
+    if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
+    return;
+  }
+
+  const records = processedDataA.records;
+  const inRange = records.filter(r =>
+    r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
+  );
+
+  if (inRange.length === 0) {
+    if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+    if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+    if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
+    if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
+    if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
+    return;
+  }
+
+  const first = inRange[0];
+  const last  = inRange[inRange.length - 1];
+
+  // Ø HF
+  const hrValues = inRange
+    .map(r => r.heart_rate)
+    .filter(v => typeof v === 'number');
+  const avgHr = hrValues.length
+    ? hrValues.reduce((a, b) => a + b, 0) / hrValues.length
+    : null;
+
+  // Distanz im Abschnitt
+  const deltaDistance =
+    typeof last.distance === 'number' && typeof first.distance === 'number'
+      ? Math.max(0, last.distance - first.distance)
+      : null;
+
+  // Ø Power
+  const pValues = inRange
+    .map(r => r.power)
+    .filter(v => typeof v === 'number');
+  const avgPower = pValues.length
+    ? pValues.reduce((a, b) => a + b, 0) / pValues.length
+    : null;
+
+  // Kumulierte Höhe im Abschnitt
+  const deltaAscent =
+    typeof last.accumulated_ascent === 'number' &&
+    typeof first.accumulated_ascent === 'number'
+      ? Math.max(0, last.accumulated_ascent - first.accumulated_ascent)
+      : null;
+
+  // Max. Ø Power 5/10/20/60
+  const maxAvgP = computeMaxAvgPowerOverDurations(records, startMs, endMs);
+
+  if (rangeHrAElem) rangeHrAElem.textContent =
+    avgHr != null ? avgHr.toFixed(0) : 'N/A';
+  if (rangeDistanceAElem) rangeDistanceAElem.textContent =
+    deltaDistance != null ? deltaDistance.toFixed(2) + ' km' : 'N/A';
+  if (rangePowerAElem) rangePowerAElem.textContent =
+    avgPower != null ? avgPower.toFixed(1) : 'N/A';
+  if (rangeAscentAElem) rangeAscentAElem.textContent =
+    deltaAscent != null ? deltaAscent.toFixed(0) + ' m' : 'N/A';
+
+  if (rangeMaxPowerDurationsAElem) {
+    const parts = [];
+    if (maxAvgP['5']  != null) parts.push(`5': ${maxAvgP['5'].toFixed(0)} W`);
+    if (maxAvgP['10'] != null) parts.push(`10': ${maxAvgP['10'].toFixed(0)} W`);
+    if (maxAvgP['20'] != null) parts.push(`20': ${maxAvgP['20'].toFixed(0)} W`);
+    if (maxAvgP['60'] != null) parts.push(`60': ${maxAvgP['60'].toFixed(0)} W`);
+    rangeMaxPowerDurationsAElem.textContent =
+      parts.length ? parts.join(', ') : 'N/A';
+  }
 }
 
 function updateFromSlider() {
@@ -771,7 +967,9 @@ function updateFromSlider() {
 
         altitudeChartInstance.update('none');
     }
-
+    if (mode === 'single' && processedDataA) {
+        updateRangeStats();
+    }
     // DEBUGGING
     // console.log(`Slider RelTime: ${currentRelativeTime/1000}s, Record A valid: ${!!recordA}, Record B valid: ${!!recordB}`);
 }
@@ -855,6 +1053,17 @@ function assignDOMElements() {
     altitudeAElem = document.getElementById('altitudeA'); altitudeBElem = document.getElementById('altitudeB');
     ascentAElem = document.getElementById('ascentA'); ascentBElem = document.getElementById('ascentB');
     modeRadios = document.querySelectorAll('input[name="mode"]');
+    rangeStartSlider = document.getElementById('rangeStart');
+    rangeEndSlider = document.getElementById('rangeEnd');
+    rangeStartLabel = document.getElementById('rangeStartLabel');
+    rangeEndLabel = document.getElementById('rangeEndLabel');
+
+    rangeHrAElem = document.getElementById('rangeHrA');
+    rangeDistanceAElem = document.getElementById('rangeDistanceA');
+    rangePowerAElem = document.getElementById('rangePowerA');
+    rangeAscentAElem = document.getElementById('rangeAscentA');
+    rangeMaxPowerDurationsAElem = document.getElementById('rangeMaxPowerDurationsA');
+
 
     // mapElement wird in initMap geholt.
 
@@ -867,7 +1076,9 @@ function assignDOMElements() {
         timeAElem, timeBElem, hrAElem, hrBElem, speedAElem, speedBElem,
         powerAElem, powerBElem, avgPowerAElem, avgPowerBElem,
         document.getElementById('distanceA'), document.getElementById('distanceB'), // Für die Prüfung
-        altitudeAElem, altitudeBElem, ascentAElem, ascentBElem // Für die Prüfung
+        altitudeAElem, altitudeBElem, ascentAElem, ascentBElem, // Für die Prüfung
+        rangeHrAElem, rangeDistanceAElem, rangePowerAElem,
+        rangeAscentAElem, rangeMaxPowerDurationsAElem
     ];
 
     const allElements = [
@@ -942,6 +1153,31 @@ function initializeAppLogic() {
             }, THROTTLE_DELAY);
         }
     });
+    if (rangeStartSlider && rangeEndSlider) {
+        rangeStartSlider.addEventListener('input', () => {
+            const startVal = parseInt(rangeStartSlider.value);
+            let endVal = parseInt(rangeEndSlider.value);
+            if (startVal > endVal) {
+                endVal = startVal;
+                rangeEndSlider.value = String(endVal);
+            }
+            if (rangeStartLabel) rangeStartLabel.textContent = formatTime(startVal, false);
+            if (rangeEndLabel) rangeEndLabel.textContent = formatTime(endVal, false);
+            updateRangeStats();
+        });
+
+        rangeEndSlider.addEventListener('input', () => {
+            let startVal = parseInt(rangeStartSlider.value);
+            const endVal = parseInt(rangeEndSlider.value);
+            if (endVal < startVal) {
+                startVal = endVal;
+                rangeStartSlider.value = String(startVal);
+            }
+            if (rangeStartLabel) rangeStartLabel.textContent = formatTime(startVal, false);
+            if (rangeEndLabel) rangeEndLabel.textContent = formatTime(endVal, false);
+            updateRangeStats();
+        });
+    }
     console.log("App-Logik erfolgreich initialisiert und Event-Listener angehängt.");
 }
 
