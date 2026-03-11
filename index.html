@@ -7,7 +7,9 @@
   <title>Garmin FIT Vergleicher</title>
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin="">
 
   <!-- Eigenes CSS -->
   <link rel="stylesheet" href="./src/style.css">
@@ -23,7 +25,6 @@
 
   <!-- easy-fit direkt von GitHub über jsDelivr -->
   <script src="https://cdn.jsdelivr.net/gh/pierremtb/easy-fit/dist/easy-fit.min.js"></script>
-
 </head>
 
 <body>
@@ -63,6 +64,22 @@
       <div style="text-align: center; margin-top: 5px;">
         Aktuelle Zeit: <span id="currentTimeDisplay">--:--:--</span>
       </div>
+
+      <!-- NEU: Bereichsauswahl für Einzelanalyse -->
+      <div class="range-controls" id="rangeControls" style="margin-top: 15px;">
+        <h3>Bereichsanalyse (nur eine Aktivität)</h3>
+        <div class="slider-container">
+          <span>Bereich Start:</span>
+          <input type="range" id="rangeStart" min="0" max="100" value="0" disabled>
+          <span id="rangeStartLabel">00:00:00</span>
+        </div>
+        <div class="slider-container" style="margin-top: 5px;">
+          <span>Bereich Ende:</span>
+          <input type="range" id="rangeEnd" min="0" max="100" value="0" disabled>
+          <span id="rangeEndLabel">00:00:00</span>
+        </div>
+      </div>
+      <!-- ENDE Bereichsauswahl -->
     </div>
 
     <div class="data-display">
@@ -115,6 +132,34 @@
             <td id="avgPowerA">N/A</td>
             <td id="avgPowerB">N/A</td>
           </tr>
+
+          <!-- NEU: Bereichsauswertung für Einzelanalyse -->
+          <tr>
+            <td>Ø Puls im Bereich (bpm)</td>
+            <td id="rangeHrA">N/A</td>
+            <td class="track-b hidden">–</td>
+          </tr>
+          <tr>
+            <td>Distanz im Bereich (km)</td>
+            <td id="rangeDistanceA">N/A</td>
+            <td class="track-b hidden">–</td>
+          </tr>
+          <tr>
+            <td>Ø Power im Bereich (W)</td>
+            <td id="rangePowerA">N/A</td>
+            <td class="track-b hidden">–</td>
+          </tr>
+          <tr>
+            <td>Kumulierte Höhe im Bereich (m)</td>
+            <td id="rangeAscentA">N/A</td>
+            <td class="track-b hidden">–</td>
+          </tr>
+          <tr>
+            <td>Max. Ø Power im Bereich (5/10/20/60 min, W)</td>
+            <td id="rangeMaxPowerDurationsA">N/A</td>
+            <td class="track-b hidden">–</td>
+          </tr>
+          <!-- ENDE Bereichsauswertung -->
         </tbody>
       </table>
     </div>
