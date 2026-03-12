@@ -45,6 +45,7 @@ let rangeStartSlider, rangeEndSlider;
 let rangeStartLabel, rangeEndLabel;
 let rangeHrAElem, rangeDistanceAElem, rangePowerAElem, rangeAscentAElem;
 let rangeMaxPowerDurationsAElem;
+let rangeBarFill;
 
 
 const verticalLinePlugin = {
@@ -105,7 +106,16 @@ function applyModeToUI() {
     const fitFileBInput = document.getElementById('fitFileB');
     const trackBHeader = document.querySelector('th.track-b');
     const trackBCells = document.querySelectorAll('td#timeB, td#distanceB, td#hrB, td#speedB, td#altitudeB, td#ascentB, td#powerB, td#avgPowerB');
-
+    const perTrackRows = [
+        document.getElementById('rowTimeTrack'),
+        document.getElementById('rowDistanceTrack'),
+        document.getElementById('rowHrTrack'),
+        document.getElementById('rowSpeedTrack'),
+        document.getElementById('rowAltTrack'),
+        document.getElementById('rowAscentTrack'),
+        document.getElementById('rowPowerTrack'),
+        document.getElementById('rowAvgPowerTrack')
+    ];
     if (mode === 'single') {
         // Datei B und Spalte B ausblenden / deaktivieren
         if (fitFileBLabel) fitFileBLabel.classList.add('hidden');
@@ -129,12 +139,18 @@ function applyModeToUI() {
 
         // Hinweis zur Ähnlichkeitsprüfung leeren
         if (similarityWarning) similarityWarning.textContent = '';
+        perTrackRows.forEach(row => {
+            if (row) row.classList.add('hidden');
+        });
     } else {
         // Vergleichsmodus: alles anzeigen
         if (fitFileBLabel) fitFileBLabel.classList.remove('hidden');
         if (fitFileBInput) fitFileBInput.classList.remove('hidden');
         if (trackBHeader) trackBHeader.classList.remove('hidden');
         trackBCells.forEach(td => td.classList.remove('hidden'));
+        perTrackRows.forEach(row => {
+            if (row) row.classList.remove('hidden');
+        });
     }
 }
 
@@ -682,10 +698,16 @@ function setupSlider() {
 
         if (rangeStartLabel) rangeStartLabel.textContent = formatTime(0, false);
         if (rangeEndLabel) rangeEndLabel.textContent = formatTime(durationMs, false);
+
+        // HIER:
+        updateRangeFill(durationMs);
     } else if (rangeStartSlider && rangeEndSlider) {
         rangeStartSlider.disabled = true;
         rangeEndSlider.disabled = true;
+        // Optional: auch Balken leeren
+        updateRangeFill(0);
     }
+
 
 }
 
@@ -793,101 +815,101 @@ function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
 }
 
 function updateRangeStats() {
-  if (
-    mode !== 'single' ||
-    !processedDataA ||
-    !processedDataA.records ||
-    processedDataA.records.length === 0 ||
-    !rangeStartSlider ||
-    !rangeEndSlider
-  ) {
-    if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
-    if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
-    if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
-    if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
-    if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
-    return;
-  }
+    if (
+        mode !== 'single' ||
+        !processedDataA ||
+        !processedDataA.records ||
+        processedDataA.records.length === 0 ||
+        !rangeStartSlider ||
+        !rangeEndSlider
+    ) {
+        if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+        if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+        if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
+        if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
+        if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
+        return;
+    }
 
-  const startMs = parseInt(rangeStartSlider.value);
-  const endMs   = parseInt(rangeEndSlider.value);
+    const startMs = parseInt(rangeStartSlider.value);
+    const endMs = parseInt(rangeEndSlider.value);
 
-  if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
-    if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
-    if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
-    if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
-    if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
-    if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
-    return;
-  }
+    if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
+        if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+        if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+        if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
+        if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
+        if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
+        return;
+    }
 
-  const records = processedDataA.records;
-  const inRange = records.filter(r =>
-    r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
-  );
+    const records = processedDataA.records;
+    const inRange = records.filter(r =>
+        r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
+    );
 
-  if (inRange.length === 0) {
-    if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
-    if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
-    if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
-    if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
-    if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
-    return;
-  }
+    if (inRange.length === 0) {
+        if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+        if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+        if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
+        if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
+        if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
+        return;
+    }
 
-  const first = inRange[0];
-  const last  = inRange[inRange.length - 1];
+    const first = inRange[0];
+    const last = inRange[inRange.length - 1];
 
-  // Ø HF
-  const hrValues = inRange
-    .map(r => r.heart_rate)
-    .filter(v => typeof v === 'number');
-  const avgHr = hrValues.length
-    ? hrValues.reduce((a, b) => a + b, 0) / hrValues.length
-    : null;
+    // Ø HF
+    const hrValues = inRange
+        .map(r => r.heart_rate)
+        .filter(v => typeof v === 'number');
+    const avgHr = hrValues.length
+        ? hrValues.reduce((a, b) => a + b, 0) / hrValues.length
+        : null;
 
-  // Distanz im Abschnitt
-  const deltaDistance =
-    typeof last.distance === 'number' && typeof first.distance === 'number'
-      ? Math.max(0, last.distance - first.distance)
-      : null;
+    // Distanz im Abschnitt
+    const deltaDistance =
+        typeof last.distance === 'number' && typeof first.distance === 'number'
+            ? Math.max(0, last.distance - first.distance)
+            : null;
 
-  // Ø Power
-  const pValues = inRange
-    .map(r => r.power)
-    .filter(v => typeof v === 'number');
-  const avgPower = pValues.length
-    ? pValues.reduce((a, b) => a + b, 0) / pValues.length
-    : null;
+    // Ø Power
+    const pValues = inRange
+        .map(r => r.power)
+        .filter(v => typeof v === 'number');
+    const avgPower = pValues.length
+        ? pValues.reduce((a, b) => a + b, 0) / pValues.length
+        : null;
 
-  // Kumulierte Höhe im Abschnitt
-  const deltaAscent =
-    typeof last.accumulated_ascent === 'number' &&
-    typeof first.accumulated_ascent === 'number'
-      ? Math.max(0, last.accumulated_ascent - first.accumulated_ascent)
-      : null;
+    // Kumulierte Höhe im Abschnitt
+    const deltaAscent =
+        typeof last.accumulated_ascent === 'number' &&
+            typeof first.accumulated_ascent === 'number'
+            ? Math.max(0, last.accumulated_ascent - first.accumulated_ascent)
+            : null;
 
-  // Max. Ø Power 5/10/20/60
-  const maxAvgP = computeMaxAvgPowerOverDurations(records, startMs, endMs);
+    // Max. Ø Power 5/10/20/60
+    const maxAvgP = computeMaxAvgPowerOverDurations(records, startMs, endMs);
 
-  if (rangeHrAElem) rangeHrAElem.textContent =
-    avgHr != null ? avgHr.toFixed(0) : 'N/A';
-  if (rangeDistanceAElem) rangeDistanceAElem.textContent =
-    deltaDistance != null ? deltaDistance.toFixed(2) + ' km' : 'N/A';
-  if (rangePowerAElem) rangePowerAElem.textContent =
-    avgPower != null ? avgPower.toFixed(1) : 'N/A';
-  if (rangeAscentAElem) rangeAscentAElem.textContent =
-    deltaAscent != null ? deltaAscent.toFixed(0) + ' m' : 'N/A';
+    if (rangeHrAElem) rangeHrAElem.textContent =
+        avgHr != null ? avgHr.toFixed(0) : 'N/A';
+    if (rangeDistanceAElem) rangeDistanceAElem.textContent =
+        deltaDistance != null ? deltaDistance.toFixed(2) + ' km' : 'N/A';
+    if (rangePowerAElem) rangePowerAElem.textContent =
+        avgPower != null ? avgPower.toFixed(1) : 'N/A';
+    if (rangeAscentAElem) rangeAscentAElem.textContent =
+        deltaAscent != null ? deltaAscent.toFixed(0) + ' m' : 'N/A';
 
-  if (rangeMaxPowerDurationsAElem) {
-    const parts = [];
-    if (maxAvgP['5']  != null) parts.push(`5': ${maxAvgP['5'].toFixed(0)} W`);
-    if (maxAvgP['10'] != null) parts.push(`10': ${maxAvgP['10'].toFixed(0)} W`);
-    if (maxAvgP['20'] != null) parts.push(`20': ${maxAvgP['20'].toFixed(0)} W`);
-    if (maxAvgP['60'] != null) parts.push(`60': ${maxAvgP['60'].toFixed(0)} W`);
-    rangeMaxPowerDurationsAElem.textContent =
-      parts.length ? parts.join(', ') : 'N/A';
-  }
+    if (rangeMaxPowerDurationsAElem) {
+        const parts = [];
+        if (maxAvgP['5'] != null) parts.push(`5': ${maxAvgP['5'].toFixed(0)} W`);
+        if (maxAvgP['10'] != null) parts.push(`10': ${maxAvgP['10'].toFixed(0)} W`);
+        if (maxAvgP['20'] != null) parts.push(`20': ${maxAvgP['20'].toFixed(0)} W`);
+        if (maxAvgP['60'] != null) parts.push(`60': ${maxAvgP['60'].toFixed(0)} W`);
+        rangeMaxPowerDurationsAElem.textContent =
+            parts.length ? parts.join(', ') : 'N/A';
+    }
 }
 
 function updateFromSlider() {
@@ -973,6 +995,24 @@ function updateFromSlider() {
     // DEBUGGING
     // console.log(`Slider RelTime: ${currentRelativeTime/1000}s, Record A valid: ${!!recordA}, Record B valid: ${!!recordB}`);
 }
+
+function updateRangeFill(durationMs) {
+    if (!rangeBarFill || !rangeStartSlider || !rangeEndSlider || durationMs <= 0) return;
+
+    const start = parseInt(rangeStartSlider.value);
+    const end = parseInt(rangeEndSlider.value);
+    if (isNaN(start) || isNaN(end) || end <= start) {
+        rangeBarFill.style.left = '0%';
+        rangeBarFill.style.width = '0%';
+        return;
+    }
+
+    const leftPercent = (start / durationMs) * 100;
+    const rightPercent = (end / durationMs) * 100;
+    rangeBarFill.style.left = `${leftPercent}%`;
+    rangeBarFill.style.width = `${rightPercent - leftPercent}%`;
+}
+
 
 // updateDataDisplay, parseFitFile, checkTrackSimilarity, formatTime, formatTrackTime, 
 // findRecordAtOrBeforeRelativeTime, calculateAveragePower, assignDOMElements, 
@@ -1063,6 +1103,7 @@ function assignDOMElements() {
     rangePowerAElem = document.getElementById('rangePowerA');
     rangeAscentAElem = document.getElementById('rangeAscentA');
     rangeMaxPowerDurationsAElem = document.getElementById('rangeMaxPowerDurationsA');
+    rangeBarFill = document.getElementById('rangeBarFill');
 
 
     // mapElement wird in initMap geholt.
@@ -1157,26 +1198,36 @@ function initializeAppLogic() {
         rangeStartSlider.addEventListener('input', () => {
             const startVal = parseInt(rangeStartSlider.value);
             let endVal = parseInt(rangeEndSlider.value);
+
             if (startVal > endVal) {
                 endVal = startVal;
                 rangeEndSlider.value = String(endVal);
             }
+
             if (rangeStartLabel) rangeStartLabel.textContent = formatTime(startVal, false);
             if (rangeEndLabel) rangeEndLabel.textContent = formatTime(endVal, false);
+
             updateRangeStats();
+            updateRangeFill(processedDataA ? processedDataA.totalDurationMs : 0);
         });
+
 
         rangeEndSlider.addEventListener('input', () => {
             let startVal = parseInt(rangeStartSlider.value);
             const endVal = parseInt(rangeEndSlider.value);
+
             if (endVal < startVal) {
                 startVal = endVal;
                 rangeStartSlider.value = String(startVal);
             }
+
             if (rangeStartLabel) rangeStartLabel.textContent = formatTime(startVal, false);
             if (rangeEndLabel) rangeEndLabel.textContent = formatTime(endVal, false);
+
             updateRangeStats();
+            updateRangeFill(processedDataA ? processedDataA.totalDurationMs : 0);
         });
+
     }
     console.log("App-Logik erfolgreich initialisiert und Event-Listener angehängt.");
 }
