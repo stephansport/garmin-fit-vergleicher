@@ -44,11 +44,12 @@ let powerAElem, powerBElem, avgPowerAElem, avgPowerBElem;
 let altitudeAElem, altitudeBElem, ascentAElem, ascentBElem, descentAElem, descentBElem;
 let rangeStartSlider, rangeEndSlider;
 let rangeStartLabel, rangeEndLabel;
-let rangeHrAElem, rangeDistanceAElem, rangePowerAElem, rangeAscentAElem;
+let rangeHrAElem, rangeDistanceAElem, rangePowerAElem, rangeAscentAElem, rangeSpeedAElem;
 let rangeMaxPowerDurationsAElem;
 let rangeBarFill;
 let rangeDescentAElem;
 let rangeDurationAElem;
+
 
 
 
@@ -106,13 +107,13 @@ const verticalLinePlugin = {
 };
 
 function applyModeToUI() {
-    const fitFileBLabel = document.querySelector('label[for="fitFileB"]');
-    const fitFileBInput = document.getElementById('fitFileB');
-    const trackBHeader  = document.querySelector('th.track-b');
-    const trackBCells   = document.querySelectorAll(
+    const fitFileBLabel   = document.querySelector('label[for="fitFileB"]');
+    const fitFileBInput   = document.getElementById('fitFileB');
+    const fileBContainer  = document.getElementById('fileBContainer');
+    const trackBHeader    = document.querySelector('th.track-b');
+    const trackBCells     = document.querySelectorAll(
         'td#timeB, td#distanceB, td#hrB, td#speedB, td#altitudeB, td#ascentB, td#descentB, td#powerB, td#avgPowerB'
     );
-    const fileBContainer = document.getElementById('fileBContainer');
 
     const rangeControls = document.getElementById('rangeControls');
 
@@ -120,6 +121,7 @@ function applyModeToUI() {
         document.getElementById('rangeDurationA'),
         document.getElementById('rangeHrA'),
         document.getElementById('rangeDistanceA'),
+        document.getElementById('rangeSpeedA'),
         document.getElementById('rangePowerA'),
         document.getElementById('rangeAscentA'),
         document.getElementById('rangeDescentA'),
@@ -140,7 +142,8 @@ function applyModeToUI() {
 
     if (mode === 'single') {
         // Datei B und Spalte B ausblenden / deaktivieren
-        if (fitFileBLabel) fitFileBLabel.classList.add('hidden');
+        if (fileBContainer) fileBContainer.classList.add('hidden');
+        if (fitFileBLabel)  fitFileBLabel.classList.add('hidden');
         if (fitFileBInput) {
             fitFileBInput.classList.add('hidden');
             fitFileBInput.value = '';
@@ -149,15 +152,13 @@ function applyModeToUI() {
         trackBCells.forEach(td => td.classList.add('hidden'));
 
         processedDataB = null;
-        if (fileBContainer) fileBContainer.classList.add('hidden');
-
-        if (hrBElem) hrBElem.textContent = 'N/A';
-        if (speedBElem) speedBElem.textContent = 'N/A';
-        if (powerBElem) powerBElem.textContent = 'N/A';
+        if (hrBElem)       hrBElem.textContent       = 'N/A';
+        if (speedBElem)    speedBElem.textContent    = 'N/A';
+        if (powerBElem)    powerBElem.textContent    = 'N/A';
         if (avgPowerBElem) avgPowerBElem.textContent = 'N/A';
         if (altitudeBElem) altitudeBElem.textContent = 'N/A';
-        if (ascentBElem) ascentBElem.textContent = 'N/A';
-        if (descentBElem) descentBElem.textContent = 'N/A';
+        if (ascentBElem)   ascentBElem.textContent   = 'N/A';
+        if (descentBElem)  descentBElem.textContent  = 'N/A';
         const distanceBElem = document.getElementById('distanceB');
         if (distanceBElem) distanceBElem.textContent = 'N/A';
 
@@ -177,14 +178,13 @@ function applyModeToUI() {
         if (processedDataA) updateRangeStats();
     } else {
         // Vergleichsmodus
-        if (fitFileBLabel) fitFileBLabel.classList.remove('hidden');
-        if (fitFileBInput) fitFileBInput.classList.remove('hidden');
-        if (trackBHeader) trackBHeader.classList.remove('hidden');
         if (fileBContainer) fileBContainer.classList.remove('hidden');
-
+        if (fitFileBLabel)  fitFileBLabel.classList.remove('hidden');
+        if (fitFileBInput)  fitFileBInput.classList.remove('hidden');
+        if (trackBHeader)   trackBHeader.classList.remove('hidden');
         trackBCells.forEach(td => td.classList.remove('hidden'));
         perTrackRows.forEach(row => { if (row) row.classList.remove('hidden'); });
-        
+
         // Bereichsanalyse ausblenden + Slider deaktivieren
         if (rangeControls) rangeControls.classList.add('hidden');
         if (rangeStartSlider) rangeStartSlider.disabled = true;
@@ -194,12 +194,13 @@ function applyModeToUI() {
         if (rangeDurationAElem) rangeDurationAElem.textContent = 'N/A';
         if (rangeHrAElem)       rangeHrAElem.textContent       = 'N/A';
         if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+        if (rangeSpeedAElem)    rangeSpeedAElem.textContent    = 'N/A';
         if (rangePowerAElem)    rangePowerAElem.textContent    = 'N/A';
         if (rangeAscentAElem)   rangeAscentAElem.textContent   = 'N/A';
         if (rangeDescentAElem)  rangeDescentAElem.textContent  = 'N/A';
         if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
 
-        // Zellen ausgrauen
+        // Bereichszellen ausgrauen
         rangeRows.forEach(el => {
             if (el) el.classList.add('disabled-range-cell');
         });
@@ -216,6 +217,7 @@ function applyModeToUI() {
         }
     }
 }
+
 
 function initMap() {
     if (map) { map.remove(); map = null; }
@@ -980,11 +982,12 @@ function updateRangeStats() {
         !rangeStartSlider ||
         !rangeEndSlider
     ) {
-        if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+        if (rangeHrAElem)       rangeHrAElem.textContent       = 'N/A';
         if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
-        if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
-        if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
-        if (rangeDescentAElem) rangeDescentAElem.textContent = 'N/A';
+        if (rangeSpeedAElem)    rangeSpeedAElem.textContent    = 'N/A';
+        if (rangePowerAElem)    rangePowerAElem.textContent    = 'N/A';
+        if (rangeAscentAElem)   rangeAscentAElem.textContent   = 'N/A';
+        if (rangeDescentAElem)  rangeDescentAElem.textContent  = 'N/A';
         if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
 
         if (altitudeChartInstance) {
@@ -1004,11 +1007,12 @@ function updateRangeStats() {
 
     // 2. Bereich ungültig
     if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
-        if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+        if (rangeHrAElem)       rangeHrAElem.textContent       = 'N/A';
         if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
-        if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
-        if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
-        if (rangeDescentAElem) rangeDescentAElem.textContent = 'N/A';
+        if (rangeSpeedAElem)    rangeSpeedAElem.textContent    = 'N/A';
+        if (rangePowerAElem)    rangePowerAElem.textContent    = 'N/A';
+        if (rangeAscentAElem)   rangeAscentAElem.textContent   = 'N/A';
+        if (rangeDescentAElem)  rangeDescentAElem.textContent  = 'N/A';
         if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
 
         if (altitudeChartInstance) {
@@ -1031,11 +1035,12 @@ function updateRangeStats() {
     );
 
     if (inRange.length === 0) {
-        if (rangeHrAElem) rangeHrAElem.textContent = 'N/A';
+        if (rangeHrAElem)       rangeHrAElem.textContent       = 'N/A';
         if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
-        if (rangePowerAElem) rangePowerAElem.textContent = 'N/A';
-        if (rangeAscentAElem) rangeAscentAElem.textContent = 'N/A';
-        if (rangeDescentAElem) rangeDescentAElem.textContent = 'N/A';
+        if (rangeSpeedAElem)    rangeSpeedAElem.textContent    = 'N/A';
+        if (rangePowerAElem)    rangePowerAElem.textContent    = 'N/A';
+        if (rangeAscentAElem)   rangeAscentAElem.textContent   = 'N/A';
+        if (rangeDescentAElem)  rangeDescentAElem.textContent  = 'N/A';
         if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
 
         if (altitudeChartInstance) {
@@ -1056,8 +1061,12 @@ function updateRangeStats() {
     const rangeDurationMs = last.relativeTimestamp - first.relativeTimestamp;
 
     // HF
-    const hrValues = inRange.map(r => r.heart_rate).filter(v => typeof v === 'number');
-    const avgHr = hrValues.length ? hrValues.reduce((a,b)=>a+b,0) / hrValues.length : null;
+    const hrValues = inRange
+        .map(r => r.heart_rate)
+        .filter(v => typeof v === 'number');
+    const avgHr = hrValues.length
+        ? hrValues.reduce((a, b) => a + b, 0) / hrValues.length
+        : null;
 
     // Distanz
     const deltaDistance =
@@ -1065,9 +1074,20 @@ function updateRangeStats() {
             ? Math.max(0, last.distance - first.distance)
             : null;
 
-    // Power
-    const pValues = inRange.map(r => r.power).filter(v => typeof v === 'number');
-    const avgPower = pValues.length ? pValues.reduce((a,b)=>a+b,0) / pValues.length : null;
+    // Ø Geschwindigkeit (km/h)
+    let avgSpeedRange = null;
+    if (rangeDurationMs > 0 && deltaDistance != null) {
+        const hours = rangeDurationMs / (1000 * 60 * 60);
+        avgSpeedRange = hours > 0 ? deltaDistance / hours : null;
+    }
+
+    // Ø Power
+    const pValues = inRange
+        .map(r => r.power)
+        .filter(v => typeof v === 'number');
+    const avgPower = pValues.length
+        ? pValues.reduce((a, b) => a + b, 0) / pValues.length
+        : null;
 
     // Anstieg
     const deltaAscent =
@@ -1110,6 +1130,9 @@ function updateRangeStats() {
 
     if (rangeDistanceAElem) rangeDistanceAElem.textContent =
         deltaDistance != null ? deltaDistance.toFixed(2) + ' km' : 'N/A';
+
+    if (rangeSpeedAElem) rangeSpeedAElem.textContent =
+        avgSpeedRange != null ? avgSpeedRange.toFixed(1) + ' km/h' : 'N/A';
 
     if (rangePowerAElem) rangePowerAElem.textContent =
         avgPower != null ? avgPower.toFixed(1) : 'N/A';
@@ -1464,6 +1487,8 @@ function assignDOMElements() {
     rangeAscentAElem = document.getElementById('rangeAscentA');
     rangeDescentAElem = document.getElementById('rangeDescentA');
     rangeMaxPowerDurationsAElem = document.getElementById('rangeMaxPowerDurationsA');
+    rangeSpeedAElem    = document.getElementById('rangeSpeedA');
+
     rangePanelElem = document.getElementById('rangePanel');
 
     rangeBarFill = document.getElementById('rangeBarFill');
