@@ -7,9 +7,7 @@
   <title>Garmin FIT Vergleicher</title>
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 
   <!-- Eigenes CSS -->
   <link rel="stylesheet" href="./src/style.css">
@@ -68,17 +66,24 @@
       <!-- NEU: Bereichsauswahl für Einzelanalyse -->
       <div class="range-controls" id="rangeControls" style="margin-top: 15px;">
         <h3>Bereichsanalyse (nur eine Aktivität)</h3>
-        <div class="slider-container">
-          <span>Bereich Start:</span>
-          <input type="range" id="rangeStart" min="0" max="100" value="0" disabled>
-          <span id="rangeStartLabel">00:00:00</span>
+
+        <div class="range-bar-container">
+          <div class="range-bar"></div>
+          <div class="range-bar-fill" id="rangeBarFill"></div>
+
+          <div class="range-handle">
+            <input type="range" id="rangeStart" min="0" max="100" value="0" disabled>
+            <input type="range" id="rangeEnd" min="0" max="100" value="0" disabled>
+          </div>
         </div>
+
         <div class="slider-container" style="margin-top: 5px;">
-          <span>Bereich Ende:</span>
-          <input type="range" id="rangeEnd" min="0" max="100" value="0" disabled>
-          <span id="rangeEndLabel">00:00:00</span>
+          <span>Bereich Start: <span id="rangeStartLabel">00:00:00</span></span>
+          <span style="flex-grow:1"></span>
+          <span>Bereich Ende: <span id="rangeEndLabel">00:00:00</span></span>
         </div>
       </div>
+
       <!-- ENDE Bereichsauswahl -->
     </div>
 
@@ -92,50 +97,51 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
+          <tr id="rowTimeTrack">
             <td>Zeit im Track</td>
             <td id="timeA">N/A</td>
             <td id="timeB">N/A</td>
           </tr>
-          <tr>
+          <tr id="rowDistanceTrack">
             <td>Distanz (km)</td>
             <td id="distanceA">N/A</td>
             <td id="distanceB">N/A</td>
           </tr>
-          <tr>
+          <tr id="rowHrTrack">
             <td>Herzfrequenz (bpm)</td>
             <td id="hrA">N/A</td>
             <td id="hrB">N/A</td>
           </tr>
-          <tr>
+          <tr id="rowSpeedTrack">
             <td>Geschwindigkeit (km/h)</td>
             <td id="speedA">N/A</td>
             <td id="speedB">N/A</td>
           </tr>
-          <tr>
+          <tr id="rowAltTrack">
             <td>Aktuelle Höhe (m)</td>
             <td id="altitudeA">N/A</td>
             <td id="altitudeB">N/A</td>
           </tr>
-          <tr>
+          <tr id="rowAscentTrack">
             <td>Kumulierte Höhe (m)</td>
             <td id="ascentA">N/A</td>
             <td id="ascentB">N/A</td>
           </tr>
-          <tr>
+          <tr id="rowPowerTrack">
             <td>Leistung (Watt)</td>
             <td id="powerA">N/A</td>
             <td id="powerB">N/A</td>
           </tr>
-          <tr>
+          <tr id="rowAvgPowerTrack">
             <td>Ø Leistung bis hier (Watt)</td>
             <td id="avgPowerA">N/A</td>
             <td id="avgPowerB">N/A</td>
           </tr>
 
+
           <!-- NEU: Bereichsauswertung für Einzelanalyse -->
           <tr>
-            <td>Ø Puls im Bereich (bpm)</td>
+            <td>Ø Herzfrequenz im Bereich (bpm)</td>
             <td id="rangeHrA">N/A</td>
             <td class="track-b hidden">–</td>
           </tr>
