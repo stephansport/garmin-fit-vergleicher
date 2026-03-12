@@ -941,6 +941,29 @@ function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
     return result;
 }
 
+function computeCumulativeDescentUpTo(records, targetRelativeTimestamp) {
+    if (!records || records.length === 0) return null;
+
+    let descentSum = 0;
+    let prevAlt = null;
+
+    for (let i = 0; i < records.length; i++) {
+        const r = records[i];
+        if (r.relativeTimestamp > targetRelativeTimestamp) break;
+
+        const currAlt = typeof r.altitude === 'number' && !isNaN(r.altitude)
+            ? r.altitude
+            : null;
+
+        if (prevAlt != null && currAlt != null) {
+            const diff = currAlt - prevAlt;
+            if (diff < 0) descentSum += Math.abs(diff);
+        }
+        prevAlt = currAlt;
+    }
+
+    return descentSum;
+}
 
 
 
@@ -1387,7 +1410,16 @@ function updateDataDisplay(trackId, record, trackStartTime_relative, currentRela
         if (dataElems.distance) dataElems.distance.textContent = displayRecord.distance !== undefined ? displayRecord.distance.toFixed(2) + " km" : "N/A";
         if (dataElems.altitude) dataElems.altitude.textContent = displayRecord.altitude !== undefined && displayRecord.altitude !== null ? Math.round(displayRecord.altitude) + " m" : "N/A"; // Aktuelle Höhe
         if (dataElems.ascent) dataElems.ascent.textContent = displayRecord.accumulated_ascent !== undefined ? Math.round(displayRecord.accumulated_ascent) + " m" : "N/A"; // Kumulierte Höhe
-        if (dataElems.descent) dataElems.descent.textContent = displayRecord.accumulated_descent !== undefined ? Math.round(displayRecord.accumulated_descent) + ' m' : 'N/A';
+        if (dataElems.descent) {
+            const targetTs = isTrackFinished
+                ? fullData.totalDurationMs
+                : displayRecord.relativeTimestamp;
+
+            const cumDescent = computeCumulativeDescentUpTo(fullData.records, targetTs);
+            dataElems.descent.textContent =
+                cumDescent != null ? Math.round(cumDescent) + ' m' : 'N/A';
+        }
+
         if (dataElems.hr) dataElems.hr.textContent = displayRecord.heart_rate !== undefined ? displayRecord.heart_rate : "N/A";
         if (dataElems.speed) dataElems.speed.textContent = displayRecord.speed !== undefined ? parseFloat(displayRecord.speed).toFixed(1) : "N/A";
         if (dataElems.power) dataElems.power.textContent = displayRecord.power !== undefined ? displayRecord.power : "N/A";
