@@ -690,6 +690,7 @@ function setupSlider() {
         updateRangeFill(0);
     }
 
+
     // Nur im Einzelmodus sinnvoll
     if (mode === 'single' && rangeStartSlider && rangeEndSlider) {
         rangeStartSlider.min = 0;
@@ -1224,11 +1225,17 @@ function initializeAppLogic() {
             if (rangeStartLabel) rangeStartLabel.textContent = formatTime(startVal, false);
             if (rangeEndLabel) rangeEndLabel.textContent = formatTime(endVal, false);
 
+            const durationMs =
+                processedDataA && typeof processedDataA.totalDurationMs === 'number'
+                    ? processedDataA.totalDurationMs
+                    : parseInt(timeSlider.max) || 0;
+
             updateRangeStats();
-            updateRangeFill(processedDataA ? processedDataA.totalDurationMs : 0);
+            updateRangeFill(durationMs);
+
         });
 
-        
+
         rangeEndSlider.addEventListener('input', () => {
             let startVal = parseInt(rangeStartSlider.value);
             const endVal = parseInt(rangeEndSlider.value);
@@ -1241,8 +1248,13 @@ function initializeAppLogic() {
             if (rangeStartLabel) rangeStartLabel.textContent = formatTime(startVal, false);
             if (rangeEndLabel) rangeEndLabel.textContent = formatTime(endVal, false);
 
+            const durationMs =
+                processedDataA && typeof processedDataA.totalDurationMs === 'number'
+                    ? processedDataA.totalDurationMs
+                    : parseInt(timeSlider.max) || 0;
+
             updateRangeStats();
-            updateRangeFill(processedDataA ? processedDataA.totalDurationMs : 0);
+            updateRangeFill(durationMs);
         });
     }
 
