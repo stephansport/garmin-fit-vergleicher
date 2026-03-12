@@ -683,6 +683,13 @@ function setupSlider() {
     sliderTimeMinElem.textContent = formatTime(0, false);
     sliderTimeMaxElem.textContent = formatTime(durationMs, false);
 
+    // Bereichsbalken initial setzen (nur sinnvoll im Einzelmodus)
+    if (mode === 'single' && processedDataA) {
+        updateRangeFill(processedDataA.totalDurationMs);
+    } else {
+        updateRangeFill(0);
+    }
+
     // Nur im Einzelmodus sinnvoll
     if (mode === 'single' && rangeStartSlider && rangeEndSlider) {
         rangeStartSlider.min = 0;
@@ -1221,6 +1228,7 @@ function initializeAppLogic() {
             updateRangeFill(processedDataA ? processedDataA.totalDurationMs : 0);
         });
 
+        
         rangeEndSlider.addEventListener('input', () => {
             let startVal = parseInt(rangeStartSlider.value);
             const endVal = parseInt(rangeEndSlider.value);
