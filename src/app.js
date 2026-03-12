@@ -1006,29 +1006,30 @@ function updateFromSlider() {
 }
 
 function updateRangeFill(durationMs) {
-    if (!rangeBarFill || !rangeStartSlider || !rangeEndSlider || !durationMs || durationMs <= 0) {
-        if (rangeBarFill) {
-            rangeBarFill.style.left = '0%';
-            rangeBarFill.style.width = '0%';
-        }
-        return;
+  if (!rangeBarFill || !rangeStartSlider || !rangeEndSlider || !durationMs || durationMs <= 0) {
+    if (rangeBarFill) {
+      rangeBarFill.style.left = '5%';
+      rangeBarFill.style.width = '0%';
     }
+    return;
+  }
 
-    const start = parseInt(rangeStartSlider.value);
-    const end = parseInt(rangeEndSlider.value);
+  const start = parseInt(rangeStartSlider.value);
+  const end   = parseInt(rangeEndSlider.value);
 
-    if (isNaN(start) || isNaN(end) || end <= start) {
-        rangeBarFill.style.left = '0%';
-        rangeBarFill.style.width = '0%';
-        return;
-    }
+  if (isNaN(start) || isNaN(end) || end <= start) {
+    rangeBarFill.style.left = '5%';
+    rangeBarFill.style.width = '0%';
+    return;
+  }
 
-    const leftPercent = (start / durationMs) * 100;
-    const rightPercent = (end / durationMs) * 100;
+  const leftPercent  = 5 + (start / durationMs) * 90;  // 5–95 %
+  const rightPercent = 5 + (end   / durationMs) * 90;
 
-    rangeBarFill.style.left = `${leftPercent}%`;
-    rangeBarFill.style.width = `${rightPercent - leftPercent}%`;
+  rangeBarFill.style.left  = `${leftPercent}%`;
+  rangeBarFill.style.width = `${rightPercent - leftPercent}%`;
 }
+
 
 
 
