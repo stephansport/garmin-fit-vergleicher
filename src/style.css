@@ -110,6 +110,34 @@ h1 { text-align: center; color: #2c3e50; }
   background: transparent;
 }
 
+.range-bar-container {
+  position: relative;
+  margin-top: 8px;
+  height: 10px;
+}
+
+.range-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background-color: #ddd;
+}
+
+.range-bar-fill {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background-color: rgba(52, 152, 219, 0.9);
+  left: 0%;
+  width: 0%;
+}
+
 
 .hidden {
   display: none;

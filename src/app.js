@@ -48,6 +48,7 @@ let rangeMaxPowerDurationsAElem;
 let rangeBarFill;
 
 
+
 const verticalLinePlugin = {
     id: 'verticalLine',
     afterDraw: (chart, args, options) => {
@@ -997,10 +998,17 @@ function updateFromSlider() {
 }
 
 function updateRangeFill(durationMs) {
-    if (!rangeBarFill || !rangeStartSlider || !rangeEndSlider || durationMs <= 0) return;
+    if (!rangeBarFill || !rangeStartSlider || !rangeEndSlider || !durationMs || durationMs <= 0) {
+        if (rangeBarFill) {
+            rangeBarFill.style.left = '0%';
+            rangeBarFill.style.width = '0%';
+        }
+        return;
+    }
 
     const start = parseInt(rangeStartSlider.value);
     const end = parseInt(rangeEndSlider.value);
+
     if (isNaN(start) || isNaN(end) || end <= start) {
         rangeBarFill.style.left = '0%';
         rangeBarFill.style.width = '0%';
@@ -1009,9 +1017,11 @@ function updateRangeFill(durationMs) {
 
     const leftPercent = (start / durationMs) * 100;
     const rightPercent = (end / durationMs) * 100;
+
     rangeBarFill.style.left = `${leftPercent}%`;
     rangeBarFill.style.width = `${rightPercent - leftPercent}%`;
 }
+
 
 
 // updateDataDisplay, parseFitFile, checkTrackSimilarity, formatTime, formatTrackTime, 
@@ -1211,7 +1221,6 @@ function initializeAppLogic() {
             updateRangeFill(processedDataA ? processedDataA.totalDurationMs : 0);
         });
 
-
         rangeEndSlider.addEventListener('input', () => {
             let startVal = parseInt(rangeStartSlider.value);
             const endVal = parseInt(rangeEndSlider.value);
@@ -1227,10 +1236,11 @@ function initializeAppLogic() {
             updateRangeStats();
             updateRangeFill(processedDataA ? processedDataA.totalDurationMs : 0);
         });
-
     }
-    console.log("App-Logik erfolgreich initialisiert und Event-Listener angehängt.");
+
+    console.log("App-Logik erfolgreich initialisiert.");
 }
+
 
 // Startpunkt: Warten auf DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
