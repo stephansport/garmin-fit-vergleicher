@@ -112,6 +112,7 @@ function applyModeToUI() {
     const trackBCells   = document.querySelectorAll(
         'td#timeB, td#distanceB, td#hrB, td#speedB, td#altitudeB, td#ascentB, td#descentB, td#powerB, td#avgPowerB'
     );
+    const fileBContainer = document.getElementById('fileBContainer');
 
     const rangeControls = document.getElementById('rangeControls');
 
@@ -148,6 +149,8 @@ function applyModeToUI() {
         trackBCells.forEach(td => td.classList.add('hidden'));
 
         processedDataB = null;
+        if (fileBContainer) fileBContainer.classList.add('hidden');
+
         if (hrBElem) hrBElem.textContent = 'N/A';
         if (speedBElem) speedBElem.textContent = 'N/A';
         if (powerBElem) powerBElem.textContent = 'N/A';
@@ -177,9 +180,11 @@ function applyModeToUI() {
         if (fitFileBLabel) fitFileBLabel.classList.remove('hidden');
         if (fitFileBInput) fitFileBInput.classList.remove('hidden');
         if (trackBHeader) trackBHeader.classList.remove('hidden');
+        if (fileBContainer) fileBContainer.classList.remove('hidden');
+
         trackBCells.forEach(td => td.classList.remove('hidden'));
         perTrackRows.forEach(row => { if (row) row.classList.remove('hidden'); });
-
+        
         // Bereichsanalyse ausblenden + Slider deaktivieren
         if (rangeControls) rangeControls.classList.add('hidden');
         if (rangeStartSlider) rangeStartSlider.disabled = true;
