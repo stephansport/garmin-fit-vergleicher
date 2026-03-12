@@ -32,6 +32,7 @@ let throttleTimeout = null;
 const THROTTLE_DELAY = 100; // Millisekunden, z.B. 10 Updates pro Sekunde maximal
 let mode = 'single'; // 'single' oder 'compare'
 let modeRadios;
+let rangePanelElem;
 
 
 
@@ -48,8 +49,6 @@ let rangeMaxPowerDurationsAElem;
 let rangeBarFill;
 let rangeDescentAElem;
 let rangeDurationAElem;
-
-
 
 
 
@@ -109,8 +108,25 @@ const verticalLinePlugin = {
 function applyModeToUI() {
     const fitFileBLabel = document.querySelector('label[for="fitFileB"]');
     const fitFileBInput = document.getElementById('fitFileB');
-    const trackBHeader = document.querySelector('th.track-b');
-    const trackBCells = document.querySelectorAll('td#timeB, td#distanceB, td#hrB, td#speedB, td#altitudeB, td#ascentB, td#powerB, td#avgPowerB');
+    const trackBHeader  = document.querySelector('th.track-b');
+    const trackBCells   = document.querySelectorAll(
+        'td#timeB, td#distanceB, td#hrB, td#speedB, td#altitudeB, td#ascentB, td#powerB, td#avgPowerB'
+    );
+
+    // Bereichs-Slider-Block
+    const rangeControls = document.getElementById('rangeControls');
+
+    // Bereichs-Ergebniszeilen (A-Spalte)
+    const rangeRows = [
+        document.getElementById('rangeDurationA'),
+        document.getElementById('rangeHrA'),
+        document.getElementById('rangeDistanceA'),
+        document.getElementById('rangePowerA'),
+        document.getElementById('rangeAscentA'),
+        document.getElementById('rangeDescentA'),
+        document.getElementById('rangeMaxPowerDurationsA')
+    ];
+
     const perTrackRows = [
         document.getElementById('rowTimeTrack'),
         document.getElementById('rowDistanceTrack'),
@@ -121,6 +137,7 @@ function applyModeToUI() {
         document.getElementById('rowPowerTrack'),
         document.getElementById('rowAvgPowerTrack')
     ];
+
     if (mode === 'single') {
         // Datei B und Spalte B ausblenden / deaktivieren
         if (fitFileBLabel) fitFileBLabel.classList.add('hidden');
@@ -147,8 +164,13 @@ function applyModeToUI() {
         perTrackRows.forEach(row => {
             if (row) row.classList.add('hidden');
         });
+
+        // Bereichsanalyse sichtbar + Slider aktiv
+        if (rangeControls) rangeControls.classList.remove('hidden');
+        if (rangeStartSlider) rangeStartSlider.disabled = false;
+        if (rangeEndSlider)   rangeEndSlider.disabled   = false;
     } else {
-        // Vergleichsmodus: alles anzeigen
+        // Vergleichsmodus: B-Spalte und per-Track-Zeilen anzeigen
         if (fitFileBLabel) fitFileBLabel.classList.remove('hidden');
         if (fitFileBInput) fitFileBInput.classList.remove('hidden');
         if (trackBHeader) trackBHeader.classList.remove('hidden');
@@ -156,8 +178,40 @@ function applyModeToUI() {
         perTrackRows.forEach(row => {
             if (row) row.classList.remove('hidden');
         });
+
+        // Bereichsanalyse ausblenden + Slider deaktivieren
+        if (rangeControls) rangeControls.classList.add('hidden');
+        if (rangeStartSlider) rangeStartSlider.disabled = true;
+        if (rangeEndSlider)   rangeEndSlider.disabled   = true;
+
+        // Bereichswerte leeren
+        if (rangeDurationAElem) rangeDurationAElem.textContent = 'N/A';
+        if (rangeHrAElem)       rangeHrAElem.textContent       = 'N/A';
+        if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+        if (rangePowerAElem)    rangePowerAElem.textContent    = 'N/A';
+        if (rangeAscentAElem)   rangeAscentAElem.textContent   = 'N/A';
+        if (rangeDescentAElem)  rangeDescentAElem.textContent  = 'N/A';
+        if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
+
+        // Optional: falls du die Zellen selbst zusätzlich ausgrauen willst
+        rangeRows.forEach(el => {
+            if (el) el.classList.add('disabled-range-cell');
+        });
+
+        // Bereichs- und Max-Interval-Markierungen im Chart entfernen
+        if (altitudeChartInstance) {
+            const ds = altitudeChartInstance.data.datasets;
+            ['Bereich Start', 'Bereich Ende', 'Max 5min', 'Max 10min', 'Max 20min', 'Max 60min']
+                .forEach(label => {
+                    const idx = ds.findIndex(d => d.label === label);
+                    if (idx !== -1) ds[idx].data = [];
+                });
+            altitudeChartInstance.update('none');
+        }
     }
 }
+
+
 
 function initMap() {
     if (map) { map.remove(); map = null; }
@@ -364,6 +418,39 @@ function setupAltitudeChart() {
         pointRadius: 0,
         showLine: true,
         order: 1
+    });
+    // nach den bestehenden Datasets (Höhe A/B, Position/Haarlinie A/B)
+    datasets.push({
+        label: 'Max 5min',
+        data: [],
+        borderColor: 'rgba(0, 128, 255, 0.8)',
+        borderWidth: 2,
+        pointRadius: 0,
+        showLine: true
+    });
+    datasets.push({
+        label: 'Max 10min',
+        data: [],
+        borderColor: 'rgba(0, 200, 0, 0.8)',
+        borderWidth: 2,
+        pointRadius: 0,
+        showLine: true
+    });
+    datasets.push({
+        label: 'Max 20min',
+        data: [],
+        borderColor: 'rgba(255, 165, 0, 0.8)',
+        borderWidth: 2,
+        pointRadius: 0,
+        showLine: true
+    });
+    datasets.push({
+        label: 'Max 60min',
+        data: [],
+        borderColor: 'rgba(255, 0, 0, 0.8)',
+        borderWidth: 2,
+        pointRadius: 0,
+        showLine: true
     });
 
     // Dataset für Bereichs-Start (vertikale Linie)
@@ -783,7 +870,7 @@ function calculateAveragePower(records, currentTimestamp, isRelative = false) {
 
 function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
     const result = {
-        '5':  { value: null, startOffsetMs: null },
+        '5': { value: null, startOffsetMs: null },
         '10': { value: null, startOffsetMs: null },
         '20': { value: null, startOffsetMs: null },
         '60': { value: null, startOffsetMs: null }
@@ -800,7 +887,7 @@ function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
     const sectionDurationSec = (endMs - startMs) / 1000;
 
     const durations = [
-        { key: '5',  seconds: 5 * 60 },
+        { key: '5', seconds: 5 * 60 },
         { key: '10', seconds: 10 * 60 },
         { key: '20', seconds: 20 * 60 },
         { key: '60', seconds: 60 * 60 }
@@ -827,7 +914,7 @@ function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
             if (tStart < startMs) continue;
 
             while (iStart < inRange.length &&
-                   inRange[iStart].relativeTimestamp < tStart) {
+                inRange[iStart].relativeTimestamp < tStart) {
                 iStart++;
             }
             if (iStart > i) continue;
@@ -1160,6 +1247,64 @@ function updateFromSlider() {
 
         altitudeChartInstance.update('none');
     }
+
+    // Max-Intervalle im Höhenprofil markieren
+    if (altitudeChartInstance && processedDataA) {
+        const xAxisType = altitudeChartInstance.options.scales.x.title.text.includes('km')
+            ? 'distance'
+            : 'relativeTime';
+        const ds = altitudeChartInstance.data.datasets;
+
+        const i5 = ds.findIndex(d => d.label === 'Max 5min');
+        const i10 = ds.findIndex(d => d.label === 'Max 10min');
+        const i20 = ds.findIndex(d => d.label === 'Max 20min');
+        const i60 = ds.findIndex(d => d.label === 'Max 60min');
+
+        function setIntervalDataset(idx, obj, durationSec) {
+            if (idx === -1) return;
+            if (!obj || obj.value == null || obj.startOffsetMs == null) {
+                ds[idx].data = [];
+                return;
+            }
+            const startAbsMs = startMs + obj.startOffsetMs;
+            const endAbsMs = startAbsMs + durationSec * 1000;
+
+            let xStart, xEnd;
+            if (xAxisType === 'distance') {
+                const recStart = findRecordAtOrBeforeRelativeTime(
+                    processedDataA.records,
+                    startAbsMs
+                );
+                const recEnd = findRecordAtOrBeforeRelativeTime(
+                    processedDataA.records,
+                    endAbsMs
+                );
+                if (!recStart || !recEnd) { ds[idx].data = []; return; }
+                xStart = recStart.distance;
+                xEnd = recEnd.distance;
+            } else {
+                xStart = startAbsMs / 1000;
+                xEnd = endAbsMs / 1000;
+            }
+
+            const yMid = (altitudeChartInstance.scales.y.min +
+                altitudeChartInstance.scales.y.max) / 2;
+
+            ds[idx].data = [
+                { x: xStart, y: yMid },
+                { x: xEnd, y: yMid }
+            ];
+        }
+
+        setIntervalDataset(i5, maxAvgP['5'], 5 * 60);
+        setIntervalDataset(i10, maxAvgP['10'], 10 * 60);
+        setIntervalDataset(i20, maxAvgP['20'], 20 * 60);
+        setIntervalDataset(i60, maxAvgP['60'], 60 * 60);
+
+        altitudeChartInstance.update('none');
+    }
+
+
     if (mode === 'single' && processedDataA) {
         updateRangeStats();
     }
@@ -1293,6 +1438,7 @@ function assignDOMElements() {
     rangeAscentAElem = document.getElementById('rangeAscentA');
     rangeDescentAElem = document.getElementById('rangeDescentA');
     rangeMaxPowerDurationsAElem = document.getElementById('rangeMaxPowerDurationsA');
+    rangePanelElem = document.getElementById('rangePanel');
 
     rangeBarFill = document.getElementById('rangeBarFill');
 

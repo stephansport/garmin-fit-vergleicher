@@ -142,9 +142,13 @@ h1 { text-align: center; color: #2c3e50; }
 }
 
 
+.disabled-range-cell {
+  color: #999;
+}
 .hidden {
   display: none;
 }
+
 
 
 #similarityWarning { color: orange; font-weight: bold; text-align: center; margin-bottom: 10px;}
