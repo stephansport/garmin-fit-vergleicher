@@ -783,7 +783,7 @@ function calculateAveragePower(records, currentTimestamp, isRelative = false) {
 
 function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
     const result = {
-        '5': { value: null, startOffsetMs: null },
+        '5':  { value: null, startOffsetMs: null },
         '10': { value: null, startOffsetMs: null },
         '20': { value: null, startOffsetMs: null },
         '60': { value: null, startOffsetMs: null }
@@ -797,18 +797,10 @@ function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
     );
     if (inRange.length === 0) return result;
 
-    // Zeiten im Bereich auf 0 normieren
-    const base = inRange[0].relativeTimestamp;
-    const norm = inRange.map(r => ({
-        t: r.relativeTimestamp - base,
-        p: typeof r.power === 'number' ? r.power : null
-    }));
-
-    const sectionDurationSec =
-        (norm[norm.length - 1].t - norm[0].t) / 1000;
+    const sectionDurationSec = (endMs - startMs) / 1000;
 
     const durations = [
-        { key: '5', seconds: 5 * 60 },
+        { key: '5',  seconds: 5 * 60 },
         { key: '10', seconds: 10 * 60 },
         { key: '20', seconds: 20 * 60 },
         { key: '60', seconds: 60 * 60 }
@@ -827,35 +819,40 @@ function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
         let bestStartMs = null;
         let iStart = 0;
 
-        for (let i = 0; i < norm.length; i++) {
-            const tEnd = norm[i].t;
+        for (let i = 0; i < inRange.length; i++) {
+            const tEnd = inRange[i].relativeTimestamp;
             const tStart = tEnd - T * 1000;
 
-            while (iStart < norm.length && norm[iStart].t < tStart) {
+            // Fenster muss komplett im Bereich liegen
+            if (tStart < startMs) continue;
+
+            while (iStart < inRange.length &&
+                   inRange[iStart].relativeTimestamp < tStart) {
                 iStart++;
             }
             if (iStart > i) continue;
 
-            const window = norm.slice(iStart, i + 1)
-                .map(r => r.p)
-                .filter(v => v !== null);
+            const window = inRange.slice(iStart, i + 1)
+                .map(r => r.power)
+                .filter(v => typeof v === 'number');
             if (window.length === 0) continue;
 
             const avg = window.reduce((a, b) => a + b, 0) / window.length;
             if (maxAvg === null || avg > maxAvg) {
                 maxAvg = avg;
-                bestStartMs = norm[iStart].t; // Startzeitpunkt relativ zum Bereichsanfang
+                bestStartMs = tStart; // absoluter Timestamp relativ zum Track-Start
             }
         }
 
         result[d.key] = {
             value: maxAvg,
-            startOffsetMs: bestStartMs
+            startOffsetMs: bestStartMs !== null ? (bestStartMs - startMs) : null
         };
     });
 
     return result;
 }
+
 
 
 
