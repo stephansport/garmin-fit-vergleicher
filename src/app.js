@@ -782,70 +782,69 @@ function calculateAveragePower(records, currentTimestamp, isRelative = false) {
 }
 
 function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
-    const result = { '5': null, '10': null, '20': null, '60': null };
+  const result = { '5': null, '10': null, '20': null, '60': null };
 
-    if (!records || records.length === 0) {
-        return result;
-    }
-
-    const inRange = records.filter(r =>
-        r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
-    );
-
-    if (inRange.length === 0) {
-        return result;
-    }
-
-    const sectionDurationSec =
-        (inRange[inRange.length - 1].relativeTimestamp - inRange[0].relativeTimestamp) / 1000;
-
-    const durations = [
-        { key: '5', seconds: 5 * 60 },
-        { key: '10', seconds: 10 * 60 },
-        { key: '20', seconds: 20 * 60 },
-        { key: '60', seconds: 60 * 60 }
-    ];
-
-    durations.forEach(d => {
-        const T = d.seconds;
-
-        // Wenn Bereich kürzer als T, KEIN Wert
-        if (sectionDurationSec < T) {
-            result[d.key] = null;
-            return;
-        }
-
-        let maxAvg = null;
-        let iStart = 0;
-
-        for (let i = 0; i < inRange.length; i++) {
-            const tEnd = inRange[i].relativeTimestamp;
-            const tStart = tEnd - T * 1000;
-
-            while (iStart < inRange.length && inRange[iStart].relativeTimestamp < tStart) {
-                iStart++;
-            }
-            if (iStart > i) continue;
-
-            const windowRecords = inRange.slice(iStart, i + 1);
-            const pWin = windowRecords
-                .map(r => r.power)
-                .filter(v => typeof v === 'number');
-            if (pWin.length === 0) continue;
-
-            const avgWin = pWin.reduce((a, b) => a + b, 0) / pWin.length;
-            if (maxAvg === null || avgWin > maxAvg) {
-                maxAvg = avgWin;
-            }
-        }
-
-        result[d.key] = maxAvg;
-    });
-
+  if (!records || records.length === 0) {
     return result;
+  }
+
+  const inRange = records.filter(r =>
+    r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
+  );
+
+  if (inRange.length === 0) {
+    return result;
+  }
+
+  const sectionDurationSec =
+    (inRange[inRange.length - 1].relativeTimestamp - inRange[0].relativeTimestamp) / 1000;
+
+  const durations = [
+    { key: '5',  seconds: 5 * 60 },
+    { key: '10', seconds: 10 * 60 },
+    { key: '20', seconds: 20 * 60 },
+    { key: '60', seconds: 60 * 60 }
+  ];
+
+  durations.forEach(d => {
+    const T = d.seconds;
+
+    // Wenn der Bereich kürzer als T ist → kein gültiges Fenster, N/A
+    if (sectionDurationSec < T) {
+      result[d.key] = null;
+      return;
+    }
+
+    let maxAvg = null;
+    let iStart = 0;
+
+    for (let i = 0; i < inRange.length; i++) {
+      const tEnd = inRange[i].relativeTimestamp;
+      const tStart = tEnd - T * 1000;
+
+      while (iStart < inRange.length &&
+             inRange[iStart].relativeTimestamp < tStart) {
+        iStart++;
+      }
+      if (iStart > i) continue;
+
+      const windowRecords = inRange.slice(iStart, i + 1);
+      const pWin = windowRecords
+        .map(r => r.power)
+        .filter(v => typeof v === 'number');
+      if (pWin.length === 0) continue;
+
+      const avgWin = pWin.reduce((a, b) => a + b, 0) / pWin.length;
+      if (maxAvg === null || avgWin > maxAvg) {
+        maxAvg = avgWin;
+      }
+    }
+
+    result[d.key] = maxAvg;
+  });
+
+  return result;
 }
-
-
 
 function updateRangeStats() {
     // 1. Grundchecks: nur Einzelmodus, Daten vorhanden
