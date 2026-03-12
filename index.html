@@ -66,23 +66,18 @@
       <!-- NEU: Bereichsauswahl für Einzelanalyse -->
       <div class="range-controls" id="rangeControls" style="margin-top: 15px;">
         <h3>Bereichsanalyse (nur eine Aktivität)</h3>
-
-        <div class="range-bar-container">
-          <div class="range-bar"></div>
-          <div class="range-bar-fill" id="rangeBarFill"></div>
-
-          <div class="range-handle">
-            <input type="range" id="rangeStart" min="0" max="100" value="0" disabled>
-            <input type="range" id="rangeEnd" min="0" max="100" value="0" disabled>
-          </div>
+        <div class="slider-container">
+          <span>Bereich Start:</span>
+          <input type="range" id="rangeStart" min="0" max="100" value="0" disabled>
+          <span id="rangeStartLabel">00:00:00</span>
         </div>
-
         <div class="slider-container" style="margin-top: 5px;">
-          <span>Bereich Start: <span id="rangeStartLabel">00:00:00</span></span>
-          <span style="flex-grow:1"></span>
-          <span>Bereich Ende: <span id="rangeEndLabel">00:00:00</span></span>
+          <span>Bereich Ende:</span>
+          <input type="range" id="rangeEnd" min="0" max="100" value="0" disabled>
+          <span id="rangeEndLabel">00:00:00</span>
         </div>
       </div>
+
 
       <!-- ENDE Bereichsauswahl -->
     </div>
