@@ -960,20 +960,21 @@ function updateRangeStats() {
         if (rangeDescentAElem) rangeDescentAElem.textContent = 'N/A';
         if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
 
-        // Bereichslinien im Höhenprofil löschen
+        // Bereichs- und Max-Linien im Höhenprofil löschen
         if (altitudeChartInstance) {
             const ds = altitudeChartInstance.data.datasets;
-            const iStart = ds.findIndex(d => d.label === 'Bereich Start');
-            const iEnd = ds.findIndex(d => d.label === 'Bereich Ende');
-            if (iStart !== -1) ds[iStart].data = [];
-            if (iEnd !== -1) ds[iEnd].data = [];
+            ['Bereich Start','Bereich Ende','Max 5min','Max 10min','Max 20min','Max 60min']
+                .forEach(label => {
+                    const idx = ds.findIndex(d => d.label === label);
+                    if (idx !== -1) ds[idx].data = [];
+                });
             altitudeChartInstance.update('none');
         }
         return;
     }
 
     const startMs = parseInt(rangeStartSlider.value);
-    const endMs = parseInt(rangeEndSlider.value);
+    const endMs   = parseInt(rangeEndSlider.value);
 
     // 2. Bereich ungültig
     if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
@@ -986,10 +987,11 @@ function updateRangeStats() {
 
         if (altitudeChartInstance) {
             const ds = altitudeChartInstance.data.datasets;
-            const iStart = ds.findIndex(d => d.label === 'Bereich Start');
-            const iEnd = ds.findIndex(d => d.label === 'Bereich Ende');
-            if (iStart !== -1) ds[iStart].data = [];
-            if (iEnd !== -1) ds[iEnd].data = [];
+            ['Bereich Start','Bereich Ende','Max 5min','Max 10min','Max 20min','Max 60min']
+                .forEach(label => {
+                    const idx = ds.findIndex(d => d.label === label);
+                    if (idx !== -1) ds[idx].data = [];
+                });
             altitudeChartInstance.update('none');
         }
         return;
@@ -1012,17 +1014,18 @@ function updateRangeStats() {
 
         if (altitudeChartInstance) {
             const ds = altitudeChartInstance.data.datasets;
-            const iStart = ds.findIndex(d => d.label === 'Bereich Start');
-            const iEnd = ds.findIndex(d => d.label === 'Bereich Ende');
-            if (iStart !== -1) ds[iStart].data = [];
-            if (iEnd !== -1) ds[iEnd].data = [];
+            ['Bereich Start','Bereich Ende','Max 5min','Max 10min','Max 20min','Max 60min']
+                .forEach(label => {
+                    const idx = ds.findIndex(d => d.label === label);
+                    if (idx !== -1) ds[idx].data = [];
+                });
             altitudeChartInstance.update('none');
         }
         return;
     }
 
     const first = inRange[0];
-    const last = inRange[inRange.length - 1];
+    const last  = inRange[inRange.length - 1];
 
     // Dauer im Bereich in ms
     const rangeDurationMs = last.relativeTimestamp - first.relativeTimestamp;
@@ -1052,7 +1055,7 @@ function updateRangeStats() {
     // Kumulierte Höhe im Abschnitt (nur Anstieg)
     const deltaAscent =
         typeof last.accumulated_ascent === 'number' &&
-            typeof first.accumulated_ascent === 'number'
+        typeof first.accumulated_ascent === 'number'
             ? Math.max(0, last.accumulated_ascent - first.accumulated_ascent)
             : null;
 
@@ -1064,7 +1067,6 @@ function updateRangeStats() {
     ) {
         deltaDescent = Math.max(0, last.accumulated_descent - first.accumulated_descent);
     } else {
-        // Fallback: Abstieg aus Höhenänderungen neu berechnen
         let descentSum = 0;
         for (let i = 1; i < inRange.length; i++) {
             const prevAlt = inRange[i - 1].altitude;
@@ -1081,7 +1083,6 @@ function updateRangeStats() {
         }
         deltaDescent = descentSum;
     }
-
 
     // Max. Ø Power 5/10/20/60
     const maxAvgP = computeMaxAvgPowerOverDurations(records, startMs, endMs);
@@ -1113,14 +1114,12 @@ function updateRangeStats() {
         function addPart(label, obj) {
             if (obj && obj.value != null) {
                 const absStart = startMs + (obj.startOffsetMs || 0);
-                const timeStr = formatTime(absStart, false);
-                parts.push(
-                    `${label}: ${obj.value.toFixed(0)} W (ab ${timeStr})`
-                );
+                const timeStr  = formatTime(absStart, false);
+                parts.push(`${label}: ${obj.value.toFixed(0)} W (ab ${timeStr})`);
             }
         }
 
-        addPart("5'", maxAvgP['5']);
+        addPart("5'",  maxAvgP['5']);
         addPart("10'", maxAvgP['10']);
         addPart("20'", maxAvgP['20']);
         addPart("60'", maxAvgP['60']);
@@ -1129,16 +1128,19 @@ function updateRangeStats() {
             parts.length ? parts.join(', ') : 'N/A';
     }
 
-
-    // 6. Bereich im Höhenprofil markieren
+    // 6. Bereich + Max-Intervalle im Höhenprofil markieren
     if (altitudeChartInstance) {
         const xAxisType = altitudeChartInstance.options.scales.x.title.text.includes('km')
             ? 'distance'
             : 'relativeTime';
 
-        const datasets = altitudeChartInstance.data.datasets;
+        const datasets        = altitudeChartInstance.data.datasets;
         const rangeStartIndex = datasets.findIndex(ds => ds.label === 'Bereich Start');
-        const rangeEndIndex = datasets.findIndex(ds => ds.label === 'Bereich Ende');
+        const rangeEndIndex   = datasets.findIndex(ds => ds.label === 'Bereich Ende');
+        const i5              = datasets.findIndex(ds => ds.label === 'Max 5min');
+        const i10             = datasets.findIndex(ds => ds.label === 'Max 10min');
+        const i20             = datasets.findIndex(ds => ds.label === 'Max 20min');
+        const i60             = datasets.findIndex(ds => ds.label === 'Max 60min');
 
         const yMin = altitudeChartInstance.scales.y.min;
         const yMax = altitudeChartInstance.scales.y.max;
@@ -1146,10 +1148,10 @@ function updateRangeStats() {
         let xStart, xEnd;
         if (xAxisType === 'distance') {
             xStart = first.distance;
-            xEnd = last.distance;
+            xEnd   = last.distance;
         } else {
             xStart = first.relativeTimestamp / 1000;
-            xEnd = last.relativeTimestamp / 1000;
+            xEnd   = last.relativeTimestamp / 1000;
         }
 
         if (rangeStartIndex !== -1) {
@@ -1165,16 +1167,62 @@ function updateRangeStats() {
             ];
         }
 
+        function setIntervalDataset(idx, obj, durationSec) {
+            if (idx === -1) return;
+            if (!obj || obj.value == null || obj.startOffsetMs == null) {
+                datasets[idx].data = [];
+                return;
+            }
+
+            const startAbsMs = startMs + obj.startOffsetMs;
+            const endAbsMs   = startAbsMs + durationSec * 1000;
+
+            let xIntStart, xIntEnd;
+
+            if (xAxisType === 'distance') {
+                const recStart = findRecordAtOrBeforeRelativeTime(
+                    processedDataA.records, startAbsMs
+                );
+                const recEnd = findRecordAtOrBeforeRelativeTime(
+                    processedDataA.records, endAbsMs
+                );
+                if (!recStart || !recEnd) {
+                    datasets[idx].data = [];
+                    return;
+                }
+                xIntStart = recStart.distance;
+                xIntEnd   = recEnd.distance;
+            } else {
+                xIntStart = startAbsMs / 1000;
+                xIntEnd   = endAbsMs / 1000;
+            }
+
+            const yMid = (yMin + yMax) / 2;
+
+            datasets[idx].data = [
+                { x: xIntStart, y: yMid },
+                { x: xIntEnd,   y: yMid }
+            ];
+        }
+
+        setIntervalDataset(i5,  maxAvgP['5'],  5 * 60);
+        setIntervalDataset(i10, maxAvgP['10'], 10 * 60);
+        setIntervalDataset(i20, maxAvgP['20'], 20 * 60);
+        setIntervalDataset(i60, maxAvgP['60'], 60 * 60);
+
         altitudeChartInstance.update('none');
     }
 }
+
 
 
 function updateFromSlider() {
     if (!map) return; // Wenn Karte nicht da ist, nichts tun
 
     const currentRelativeTime = parseInt(timeSlider.value) || 0;
-    if (currentTimeDisplayElem) currentTimeDisplayElem.textContent = formatTime(currentRelativeTime, false);
+    if (currentTimeDisplayElem) {
+        currentTimeDisplayElem.textContent = formatTime(currentRelativeTime, false);
+    }
 
     let recordA = null;
     let recordB = null;
@@ -1213,11 +1261,13 @@ function updateFromSlider() {
 
     // Update der Punkte im Höhendiagramm
     if (altitudeChartInstance) {
-        const xAxisType = altitudeChartInstance.options.scales.x.title.text.includes('km') ? 'distance' : 'relativeTime';
+        const xAxisType = altitudeChartInstance.options.scales.x.title.text.includes('km')
+            ? 'distance'
+            : 'relativeTime';
 
-        const posAIndex = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Position A');
+        const posAIndex      = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Position A');
         const hairlineAIndex = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Haarlinie A');
-        const posBIndex = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Position B');
+        const posBIndex      = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Position B');
         const hairlineBIndex = altitudeChartInstance.data.datasets.findIndex(ds => ds.label === 'Haarlinie B');
 
         let pointDataA = [], hairlineDataA = [], pointDataB = [], hairlineDataB = [];
@@ -1226,8 +1276,11 @@ function updateFromSlider() {
             const xVal = xAxisType === 'distance' ? recordA.distance : recordA.relativeTimestamp / 1000;
             const yVal = recordA.altitude;
             if (xVal !== undefined && yVal !== null) {
-                pointDataA = [{ x: xVal, y: yVal }];
-                hairlineDataA = [{ x: xVal, y: altitudeChartInstance.scales.y.min }, { x: xVal, y: yVal }];
+                pointDataA   = [{ x: xVal, y: yVal }];
+                hairlineDataA = [
+                    { x: xVal, y: altitudeChartInstance.scales.y.min },
+                    { x: xVal, y: yVal }
+                ];
             }
         }
 
@@ -1235,82 +1288,27 @@ function updateFromSlider() {
             const xVal = xAxisType === 'distance' ? recordB.distance : recordB.relativeTimestamp / 1000;
             const yVal = recordB.altitude;
             if (xVal !== undefined && yVal !== null) {
-                pointDataB = [{ x: xVal, y: yVal }];
-                hairlineDataB = [{ x: xVal, y: altitudeChartInstance.scales.y.min }, { x: xVal, y: yVal }];
+                pointDataB   = [{ x: xVal, y: yVal }];
+                hairlineDataB = [
+                    { x: xVal, y: altitudeChartInstance.scales.y.min },
+                    { x: xVal, y: yVal }
+                ];
             }
         }
 
-        if (posAIndex !== -1) altitudeChartInstance.data.datasets[posAIndex].data = pointDataA;
+        if (posAIndex      !== -1) altitudeChartInstance.data.datasets[posAIndex].data      = pointDataA;
         if (hairlineAIndex !== -1) altitudeChartInstance.data.datasets[hairlineAIndex].data = hairlineDataA;
-        if (posBIndex !== -1) altitudeChartInstance.data.datasets[posBIndex].data = pointDataB;
+        if (posBIndex      !== -1) altitudeChartInstance.data.datasets[posBIndex].data      = pointDataB;
         if (hairlineBIndex !== -1) altitudeChartInstance.data.datasets[hairlineBIndex].data = hairlineDataB;
 
         altitudeChartInstance.update('none');
     }
 
-    // Max-Intervalle im Höhenprofil markieren
-    if (altitudeChartInstance && processedDataA) {
-        const xAxisType = altitudeChartInstance.options.scales.x.title.text.includes('km')
-            ? 'distance'
-            : 'relativeTime';
-        const ds = altitudeChartInstance.data.datasets;
-
-        const i5 = ds.findIndex(d => d.label === 'Max 5min');
-        const i10 = ds.findIndex(d => d.label === 'Max 10min');
-        const i20 = ds.findIndex(d => d.label === 'Max 20min');
-        const i60 = ds.findIndex(d => d.label === 'Max 60min');
-
-        function setIntervalDataset(idx, obj, durationSec) {
-            if (idx === -1) return;
-            if (!obj || obj.value == null || obj.startOffsetMs == null) {
-                ds[idx].data = [];
-                return;
-            }
-            const startAbsMs = startMs + obj.startOffsetMs;
-            const endAbsMs = startAbsMs + durationSec * 1000;
-
-            let xStart, xEnd;
-            if (xAxisType === 'distance') {
-                const recStart = findRecordAtOrBeforeRelativeTime(
-                    processedDataA.records,
-                    startAbsMs
-                );
-                const recEnd = findRecordAtOrBeforeRelativeTime(
-                    processedDataA.records,
-                    endAbsMs
-                );
-                if (!recStart || !recEnd) { ds[idx].data = []; return; }
-                xStart = recStart.distance;
-                xEnd = recEnd.distance;
-            } else {
-                xStart = startAbsMs / 1000;
-                xEnd = endAbsMs / 1000;
-            }
-
-            const yMid = (altitudeChartInstance.scales.y.min +
-                altitudeChartInstance.scales.y.max) / 2;
-
-            ds[idx].data = [
-                { x: xStart, y: yMid },
-                { x: xEnd, y: yMid }
-            ];
-        }
-
-        setIntervalDataset(i5, maxAvgP['5'], 5 * 60);
-        setIntervalDataset(i10, maxAvgP['10'], 10 * 60);
-        setIntervalDataset(i20, maxAvgP['20'], 20 * 60);
-        setIntervalDataset(i60, maxAvgP['60'], 60 * 60);
-
-        altitudeChartInstance.update('none');
-    }
-
-
     if (mode === 'single' && processedDataA) {
         updateRangeStats();
     }
-    // DEBUGGING
-    // console.log(`Slider RelTime: ${currentRelativeTime/1000}s, Record A valid: ${!!recordA}, Record B valid: ${!!recordB}`);
 }
+
 
 function updateRangeFill(durationMs) {
     if (!rangeBarFill || !rangeStartSlider || !rangeEndSlider || !durationMs || durationMs <= 0) {
