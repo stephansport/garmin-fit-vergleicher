@@ -47,6 +47,8 @@ let rangeHrAElem, rangeDistanceAElem, rangePowerAElem, rangeAscentAElem;
 let rangeMaxPowerDurationsAElem;
 let rangeBarFill;
 let rangeDescentAElem;
+let rangeDurationAElem;
+
 
 
 
@@ -780,75 +782,69 @@ function calculateAveragePower(records, currentTimestamp, isRelative = false) {
 }
 
 function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
-    const result = { '5': null, '10': null, '20': null, '60': null };
+  const result = { '5': null, '10': null, '20': null, '60': null };
 
-    if (!records || records.length === 0) {
-        return result;
-    }
-
-    const inRange = records.filter(r =>
-        r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
-    );
-
-    if (inRange.length === 0) {
-        return result;
-    }
-
-    const sectionDurationSec =
-        (inRange[inRange.length - 1].relativeTimestamp - inRange[0].relativeTimestamp) / 1000;
-
-    const durations = [
-        { key: '5', seconds: 5 * 60 },
-        { key: '10', seconds: 10 * 60 },
-        { key: '20', seconds: 20 * 60 },
-        { key: '60', seconds: 60 * 60 }
-    ];
-
-    durations.forEach(d => {
-        const T = d.seconds;
-
-        if (sectionDurationSec < T) {
-            const pValues = inRange
-                .map(r => r.power)
-                .filter(v => typeof v === 'number');
-            if (pValues.length === 0) {
-                result[d.key] = null;
-            } else {
-                const avg = pValues.reduce((a, b) => a + b, 0) / pValues.length;
-                result[d.key] = avg;
-            }
-            return;
-        }
-
-        let maxAvg = null;
-        let iStart = 0;
-
-        for (let i = 0; i < inRange.length; i++) {
-            const tEnd = inRange[i].relativeTimestamp;
-            const tStart = tEnd - T * 1000;
-
-            while (iStart < inRange.length && inRange[iStart].relativeTimestamp < tStart) {
-                iStart++;
-            }
-            if (iStart > i) continue;
-
-            const windowRecords = inRange.slice(iStart, i + 1);
-            const pWin = windowRecords
-                .map(r => r.power)
-                .filter(v => typeof v === 'number');
-            if (pWin.length === 0) continue;
-
-            const avgWin = pWin.reduce((a, b) => a + b, 0) / pWin.length;
-            if (maxAvg === null || avgWin > maxAvg) {
-                maxAvg = avgWin;
-            }
-        }
-
-        result[d.key] = maxAvg;
-    });
-
+  if (!records || records.length === 0) {
     return result;
+  }
+
+  const inRange = records.filter(r =>
+    r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
+  );
+
+  if (inRange.length === 0) {
+    return result;
+  }
+
+  const sectionDurationSec =
+    (inRange[inRange.length - 1].relativeTimestamp - inRange[0].relativeTimestamp) / 1000;
+
+  const durations = [
+    { key: '5',  seconds: 5 * 60 },
+    { key: '10', seconds: 10 * 60 },
+    { key: '20', seconds: 20 * 60 },
+    { key: '60', seconds: 60 * 60 }
+  ];
+
+  durations.forEach(d => {
+    const T = d.seconds;
+
+    // Wenn Bereich kürzer als T, KEIN Wert für diese Dauer
+    if (sectionDurationSec < T) {
+      result[d.key] = null;
+      return;
+    }
+
+    let maxAvg = null;
+    let iStart = 0;
+
+    for (let i = 0; i < inRange.length; i++) {
+      const tEnd = inRange[i].relativeTimestamp;
+      const tStart = tEnd - T * 1000;
+
+      while (iStart < inRange.length && inRange[iStart].relativeTimestamp < tStart) {
+        iStart++;
+      }
+      if (iStart > i) continue;
+
+      const windowRecords = inRange.slice(iStart, i + 1);
+      const pWin = windowRecords
+        .map(r => r.power)
+        .filter(v => typeof v === 'number');
+      if (pWin.length === 0) continue;
+
+      const avgWin = pWin.reduce((a, b) => a + b, 0) / pWin.length;
+      if (maxAvg === null || avgWin > maxAvg) {
+        maxAvg = avgWin;
+      }
+    }
+
+    result[d.key] = maxAvg;
+  });
+
+  return result;
 }
+
 
 function updateRangeStats() {
     // 1. Grundchecks: nur Einzelmodus, Daten vorhanden
@@ -1223,91 +1219,118 @@ function updateDataDisplay(trackId, record, trackStartTime_relative, currentRela
 }
 
 function assignDOMElements() {
-    // ... (existierende Zuweisungen) ...
-    // timeAElem, hrAElem etc. sind schon da.
-    // Wir brauchen jetzt noch distanceA und distanceB (werden im HTML hinzugefügt)
+  fitFileAInput = document.getElementById('fitFileA');
+  fitFileBInput = document.getElementById('fitFileB');
+  timeSlider = document.getElementById('timeSlider');
+  loader = document.getElementById('loader');
+  similarityWarning = document.getElementById('similarityWarning');
 
-    // Stelle sicher, dass die Funktion true zurückgibt, wenn alle Elemente gefunden wurden
-    // (Der bestehende Code für die Elementprüfung bleibt gleich)
-    fitFileAInput = document.getElementById('fitFileA'); fitFileBInput = document.getElementById('fitFileB');
-    timeSlider = document.getElementById('timeSlider'); loader = document.getElementById('loader');
-    similarityWarning = document.getElementById('similarityWarning');
-    sliderTimeMinElem = document.getElementById('sliderTimeMin'); sliderTimeMaxElem = document.getElementById('sliderTimeMax');
-    currentTimeDisplayElem = document.getElementById('currentTimeDisplay');
-    timeAElem = document.getElementById('timeA'); timeBElem = document.getElementById('timeB');
-    hrAElem = document.getElementById('hrA'); hrBElem = document.getElementById('hrB');
-    speedAElem = document.getElementById('speedA'); speedBElem = document.getElementById('speedB');
-    powerAElem = document.getElementById('powerA'); powerBElem = document.getElementById('powerB');
-    avgPowerAElem = document.getElementById('avgPowerA'); avgPowerBElem = document.getElementById('avgPowerB');
-    timeAElem = document.getElementById('timeA'); timeBElem = document.getElementById('timeB');
-    altitudeAElem = document.getElementById('altitudeA'); altitudeBElem = document.getElementById('altitudeB');
-    ascentAElem = document.getElementById('ascentA'); ascentBElem = document.getElementById('ascentB');
-    modeRadios = document.querySelectorAll('input[name="mode"]');
-    rangeStartSlider = document.getElementById('rangeStart');
-    rangeEndSlider = document.getElementById('rangeEnd');
-    rangeStartLabel = document.getElementById('rangeStartLabel');
-    rangeEndLabel = document.getElementById('rangeEndLabel');
+  sliderTimeMinElem = document.getElementById('sliderTimeMin');
+  sliderTimeMaxElem = document.getElementById('sliderTimeMax');
+  currentTimeDisplayElem = document.getElementById('currentTimeDisplay');
 
-    rangeHrAElem = document.getElementById('rangeHrA');
-    rangeDistanceAElem = document.getElementById('rangeDistanceA');
-    rangePowerAElem = document.getElementById('rangePowerA');
-    rangeAscentAElem = document.getElementById('rangeAscentA');
-    rangeDescentAElem = document.getElementById('rangeDescentA');
-    rangeMaxPowerDurationsAElem = document.getElementById('rangeMaxPowerDurationsA');
-    rangeBarFill = document.getElementById('rangeBarFill');
+  timeAElem = document.getElementById('timeA');
+  timeBElem = document.getElementById('timeB');
+  hrAElem = document.getElementById('hrA');
+  hrBElem = document.getElementById('hrB');
+  speedAElem = document.getElementById('speedA');
+  speedBElem = document.getElementById('speedB');
+  powerAElem = document.getElementById('powerA');
+  powerBElem = document.getElementById('powerB');
+  avgPowerAElem = document.getElementById('avgPowerA');
+  avgPowerBElem = document.getElementById('avgPowerB');
+  altitudeAElem = document.getElementById('altitudeA');
+  altitudeBElem = document.getElementById('altitudeB');
+  ascentAElem = document.getElementById('ascentA');
+  ascentBElem = document.getElementById('ascentB');
 
+  modeRadios = document.querySelectorAll('input[name="mode"]');
 
-    // mapElement wird in initMap geholt.
+  rangeStartSlider = document.getElementById('rangeStart');
+  rangeEndSlider   = document.getElementById('rangeEnd');
+  rangeStartLabel  = document.getElementById('rangeStartLabel');
+  rangeEndLabel    = document.getElementById('rangeEndLabel');
 
-    // Wichtig: HTML muss um Distanz-Zellen erweitert werden!
-    // document.getElementById('distanceA'), document.getElementById('distanceB')
-    // werden in updateDataDisplay direkt geholt, da sie neu sind.
-    // Besser wäre es, sie hier auch zu initialisieren, nachdem das HTML angepasst wurde.
+  rangeDurationAElem        = document.getElementById('rangeDurationA');
+  rangeHrAElem              = document.getElementById('rangeHrA');
+  rangeDistanceAElem        = document.getElementById('rangeDistanceA');
+  rangePowerAElem           = document.getElementById('rangePowerA');
+  rangeAscentAElem          = document.getElementById('rangeAscentA');
+  rangeDescentAElem         = document.getElementById('rangeDescentA');
+  rangeMaxPowerDurationsAElem = document.getElementById('rangeMaxPowerDurationsA');
 
-    const essentialDisplayElements = [
-        timeAElem, timeBElem, hrAElem, hrBElem, speedAElem, speedBElem,
-        powerAElem, powerBElem, avgPowerAElem, avgPowerBElem,
-        document.getElementById('distanceA'), document.getElementById('distanceB'), // Für die Prüfung
-        altitudeAElem, altitudeBElem, ascentAElem, ascentBElem, // Für die Prüfung
-        rangeHrAElem, rangeDistanceAElem, rangePowerAElem,
-        rangeAscentAElem, rangeMaxPowerDurationsAElem
-    ];
+  rangeBarFill = document.getElementById('rangeBarFill');
 
-    const allElements = [
-        fitFileAInput, fitFileBInput, timeSlider, loader, similarityWarning, sliderTimeMinElem, sliderTimeMaxElem,
-        currentTimeDisplayElem, document.getElementById('map'), ...essentialDisplayElements
-    ];
+  const distanceAElem = document.getElementById('distanceA');
+  const distanceBElem = document.getElementById('distanceB');
+  const mapDomElem    = document.getElementById('map');
 
-    for (const el of allElements) {
-        if (!el) {
-            console.error("Kritisches DOM-Element nicht gefunden bei Zuweisung:", el === mapElement ? "map" : el);
-            // Versuche, die ID zu finden, die fehlt
-            const ids = ["fitFileA", "fitFileB", "timeSlider", "loader", "similarityWarning",
-                "sliderTimeMin", "sliderTimeMax", "currentTimeDisplay", "map",
-                "timeA", "timeB", "hrA", "hrB", "speedA", "speedB",
-                "powerA", "powerB", "avgPowerA", "avgPowerB"];
-            for (const id of ids) {
-                if (!document.getElementById(id)) {
-                    console.error(` Fehlendes Element hat möglicherweise die ID: ${id}`);
-                    break;
-                }
-            }
-            alert("Einige UI-Elemente konnten nicht geladen werden. Bitte die HTML-Struktur und IDs prüfen.");
-            return false;
+  const essentialDisplayElements = [
+    timeAElem, timeBElem,
+    hrAElem, hrBElem,
+    speedAElem, speedBElem,
+    powerAElem, powerBElem,
+    avgPowerAElem, avgPowerBElem,
+    distanceAElem, distanceBElem,
+    altitudeAElem, altitudeBElem,
+    ascentAElem, ascentBElem,
+    rangeDurationAElem,
+    rangeHrAElem,
+    rangeDistanceAElem,
+    rangePowerAElem,
+    rangeAscentAElem,
+    rangeDescentAElem,
+    rangeMaxPowerDurationsAElem
+  ];
+
+  const allElements = [
+    fitFileAInput,
+    fitFileBInput,
+    timeSlider,
+    loader,
+    similarityWarning,
+    sliderTimeMinElem,
+    sliderTimeMaxElem,
+    currentTimeDisplayElem,
+    mapDomElem,
+    ...essentialDisplayElements
+  ];
+
+  for (const el of allElements) {
+    if (!el) {
+      console.error('Kritisches DOM-Element nicht gefunden bei Zuweisung:', el);
+      const ids = [
+        'fitFileA', 'fitFileB', 'timeSlider', 'loader', 'similarityWarning',
+        'sliderTimeMin', 'sliderTimeMax', 'currentTimeDisplay', 'map',
+        'timeA', 'timeB', 'hrA', 'hrB', 'speedA', 'speedB',
+        'powerA', 'powerB', 'avgPowerA', 'avgPowerB',
+        'distanceA', 'distanceB',
+        'altitudeA', 'altitudeB', 'ascentA', 'ascentB',
+        'rangeDurationA', 'rangeHrA', 'rangeDistanceA', 'rangePowerA',
+        'rangeAscentA', 'rangeDescentA', 'rangeMaxPowerDurationsA'
+      ];
+      for (const id of ids) {
+        if (!document.getElementById(id)) {
+          console.error(` Fehlendes Element hat möglicherweise die ID: ${id}`);
+          break;
         }
+      }
+      alert('Einige UI-Elemente konnten nicht geladen werden. Bitte die HTML-Struktur und IDs prüfen.');
+      return false;
     }
+  }
 
-    modeRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            mode = radio.value; // 'single' oder 'compare'
-            applyModeToUI();
-            checkAndProcessFiles(); // Anzeige ggf. neu aufbauen
-        });
+  modeRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      mode = radio.value; // 'single' oder 'compare'
+      applyModeToUI();
+      checkAndProcessFiles();
     });
+  });
 
-
-    return true;
+  return true;
 }
+
 
 function initializeAppLogic() {
     if (!assignDOMElements()) {
