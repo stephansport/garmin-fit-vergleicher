@@ -782,69 +782,82 @@ function calculateAveragePower(records, currentTimestamp, isRelative = false) {
 }
 
 function computeMaxAvgPowerOverDurations(records, startMs, endMs) {
-  const result = { '5': null, '10': null, '20': null, '60': null };
+    const result = {
+        '5': { value: null, startOffsetMs: null },
+        '10': { value: null, startOffsetMs: null },
+        '20': { value: null, startOffsetMs: null },
+        '60': { value: null, startOffsetMs: null }
+    };
 
-  if (!records || records.length === 0) {
+    if (!records || records.length === 0) return result;
+
+    // Bereich zuschneiden
+    const inRange = records.filter(r =>
+        r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
+    );
+    if (inRange.length === 0) return result;
+
+    // Zeiten im Bereich auf 0 normieren
+    const base = inRange[0].relativeTimestamp;
+    const norm = inRange.map(r => ({
+        t: r.relativeTimestamp - base,
+        p: typeof r.power === 'number' ? r.power : null
+    }));
+
+    const sectionDurationSec =
+        (norm[norm.length - 1].t - norm[0].t) / 1000;
+
+    const durations = [
+        { key: '5', seconds: 5 * 60 },
+        { key: '10', seconds: 10 * 60 },
+        { key: '20', seconds: 20 * 60 },
+        { key: '60', seconds: 60 * 60 }
+    ];
+
+    durations.forEach(d => {
+        const T = d.seconds;
+
+        // Bereich zu kurz → N/A
+        if (sectionDurationSec < T) {
+            result[d.key] = { value: null, startOffsetMs: null };
+            return;
+        }
+
+        let maxAvg = null;
+        let bestStartMs = null;
+        let iStart = 0;
+
+        for (let i = 0; i < norm.length; i++) {
+            const tEnd = norm[i].t;
+            const tStart = tEnd - T * 1000;
+
+            while (iStart < norm.length && norm[iStart].t < tStart) {
+                iStart++;
+            }
+            if (iStart > i) continue;
+
+            const window = norm.slice(iStart, i + 1)
+                .map(r => r.p)
+                .filter(v => v !== null);
+            if (window.length === 0) continue;
+
+            const avg = window.reduce((a, b) => a + b, 0) / window.length;
+            if (maxAvg === null || avg > maxAvg) {
+                maxAvg = avg;
+                bestStartMs = norm[iStart].t; // Startzeitpunkt relativ zum Bereichsanfang
+            }
+        }
+
+        result[d.key] = {
+            value: maxAvg,
+            startOffsetMs: bestStartMs
+        };
+    });
+
     return result;
-  }
-
-  const inRange = records.filter(r =>
-    r.relativeTimestamp >= startMs && r.relativeTimestamp <= endMs
-  );
-
-  if (inRange.length === 0) {
-    return result;
-  }
-
-  const sectionDurationSec =
-    (inRange[inRange.length - 1].relativeTimestamp - inRange[0].relativeTimestamp) / 1000;
-
-  const durations = [
-    { key: '5',  seconds: 5 * 60 },
-    { key: '10', seconds: 10 * 60 },
-    { key: '20', seconds: 20 * 60 },
-    { key: '60', seconds: 60 * 60 }
-  ];
-
-  durations.forEach(d => {
-    const T = d.seconds;
-
-    // Wenn der Bereich kürzer als T ist → kein gültiges Fenster, N/A
-    if (sectionDurationSec < T) {
-      result[d.key] = null;
-      return;
-    }
-
-    let maxAvg = null;
-    let iStart = 0;
-
-    for (let i = 0; i < inRange.length; i++) {
-      const tEnd = inRange[i].relativeTimestamp;
-      const tStart = tEnd - T * 1000;
-
-      while (iStart < inRange.length &&
-             inRange[iStart].relativeTimestamp < tStart) {
-        iStart++;
-      }
-      if (iStart > i) continue;
-
-      const windowRecords = inRange.slice(iStart, i + 1);
-      const pWin = windowRecords
-        .map(r => r.power)
-        .filter(v => typeof v === 'number');
-      if (pWin.length === 0) continue;
-
-      const avgWin = pWin.reduce((a, b) => a + b, 0) / pWin.length;
-      if (maxAvg === null || avgWin > maxAvg) {
-        maxAvg = avgWin;
-      }
-    }
-
-    result[d.key] = maxAvg;
-  });
-
-  return result;
 }
+
+
 
 function updateRangeStats() {
     // 1. Grundchecks: nur Einzelmodus, Daten vorhanden
@@ -1010,16 +1023,28 @@ function updateRangeStats() {
             rangeDurationMs > 0 ? formatTime(rangeDurationMs, false) : 'N/A';
     }
 
-
     if (rangeMaxPowerDurationsAElem) {
         const parts = [];
-        if (maxAvgP['5'] != null) parts.push(`5': ${maxAvgP['5'].toFixed(0)} W`);
-        if (maxAvgP['10'] != null) parts.push(`10': ${maxAvgP['10'].toFixed(0)} W`);
-        if (maxAvgP['20'] != null) parts.push(`20': ${maxAvgP['20'].toFixed(0)} W`);
-        if (maxAvgP['60'] != null) parts.push(`60': ${maxAvgP['60'].toFixed(0)} W`);
+
+        function addPart(label, obj) {
+            if (obj && obj.value != null) {
+                const absStart = startMs + (obj.startOffsetMs || 0);
+                const timeStr = formatTime(absStart, false);
+                parts.push(
+                    `${label}: ${obj.value.toFixed(0)} W (ab ${timeStr})`
+                );
+            }
+        }
+
+        addPart("5'", maxAvgP['5']);
+        addPart("10'", maxAvgP['10']);
+        addPart("20'", maxAvgP['20']);
+        addPart("60'", maxAvgP['60']);
+
         rangeMaxPowerDurationsAElem.textContent =
             parts.length ? parts.join(', ') : 'N/A';
     }
+
 
     // 6. Bereich im Höhenprofil markieren
     if (altitudeChartInstance) {
