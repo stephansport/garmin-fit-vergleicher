@@ -117,15 +117,16 @@ function applyModeToUI() {
 
     const rangeControls = document.getElementById('rangeControls');
 
-    const rangeRows = [
-        document.getElementById('rangeDurationA'),
-        document.getElementById('rangeHrA'),
-        document.getElementById('rangeDistanceA'),
-        document.getElementById('rangeSpeedA'),
-        document.getElementById('rangePowerA'),
-        document.getElementById('rangeAscentA'),
-        document.getElementById('rangeDescentA'),
-        document.getElementById('rangeMaxPowerDurationsA')
+    // ganze Bereichs-ZEILEN (tr), nicht nur Zellen
+    const rangeRowElems = [
+        document.getElementById('rowRangeDuration'),
+        document.getElementById('rowRangeHr'),
+        document.getElementById('rowRangeDistance'),
+        document.getElementById('rowRangeSpeed'),
+        document.getElementById('rowRangePower'),
+        document.getElementById('rowRangeAscent'),
+        document.getElementById('rowRangeDescent'),
+        document.getElementById('rowRangeMaxPower')
     ];
 
     const perTrackRows = [
@@ -170,9 +171,9 @@ function applyModeToUI() {
         if (rangeStartSlider) rangeStartSlider.disabled = false;
         if (rangeEndSlider)   rangeEndSlider.disabled   = false;
 
-        // Bereichszellen wieder einfärben
-        rangeRows.forEach(el => {
-            if (el) el.classList.remove('disabled-range-cell');
+        // Bereichs-ZEILEN einblenden
+        rangeRowElems.forEach(tr => {
+            if (tr) tr.classList.remove('hidden');
         });
 
         if (processedDataA) updateRangeStats();
@@ -191,18 +192,18 @@ function applyModeToUI() {
         if (rangeEndSlider)   rangeEndSlider.disabled   = true;
 
         // Bereichswerte leeren
-        if (rangeDurationAElem) rangeDurationAElem.textContent = 'N/A';
-        if (rangeHrAElem)       rangeHrAElem.textContent       = 'N/A';
-        if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
-        if (rangeSpeedAElem)    rangeSpeedAElem.textContent    = 'N/A';
-        if (rangePowerAElem)    rangePowerAElem.textContent    = 'N/A';
-        if (rangeAscentAElem)   rangeAscentAElem.textContent   = 'N/A';
-        if (rangeDescentAElem)  rangeDescentAElem.textContent  = 'N/A';
+        if (rangeDurationAElem)        rangeDurationAElem.textContent        = 'N/A';
+        if (rangeHrAElem)              rangeHrAElem.textContent              = 'N/A';
+        if (rangeDistanceAElem)        rangeDistanceAElem.textContent        = 'N/A';
+        if (rangeSpeedAElem)           rangeSpeedAElem.textContent           = 'N/A';
+        if (rangePowerAElem)           rangePowerAElem.textContent           = 'N/A';
+        if (rangeAscentAElem)          rangeAscentAElem.textContent          = 'N/A';
+        if (rangeDescentAElem)         rangeDescentAElem.textContent         = 'N/A';
         if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
 
-        // Bereichszellen ausgrauen
-        rangeRows.forEach(el => {
-            if (el) el.classList.add('disabled-range-cell');
+        // Bereichs-ZEILEN komplett ausblenden
+        rangeRowElems.forEach(tr => {
+            if (tr) tr.classList.add('hidden');
         });
 
         // Bereichs- und Max-Interval-Markierungen im Chart entfernen
@@ -217,6 +218,7 @@ function applyModeToUI() {
         }
     }
 }
+
 
 
 function initMap() {
