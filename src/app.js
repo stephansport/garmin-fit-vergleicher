@@ -117,16 +117,15 @@ function applyModeToUI() {
 
     const rangeControls = document.getElementById('rangeControls');
 
-    // Bereichszeilen (ganze <tr>-Elemente)
-    const rangeRowElems = [
-        document.getElementById('rowRangeDuration'),
-        document.getElementById('rowRangeHr'),
-        document.getElementById('rowRangeDistance'),
-        document.getElementById('rowRangeSpeed'),
-        document.getElementById('rowRangePower'),
-        document.getElementById('rowRangeAscent'),
-        document.getElementById('rowRangeDescent'),
-        document.getElementById('rowRangeMaxPower')
+    const rangeRows = [
+        document.getElementById('rangeDurationA'),
+        document.getElementById('rangeHrA'),
+        document.getElementById('rangeDistanceA'),
+        document.getElementById('rangeSpeedA'),
+        document.getElementById('rangePowerA'),
+        document.getElementById('rangeAscentA'),
+        document.getElementById('rangeDescentA'),
+        document.getElementById('rangeMaxPowerDurationsA')
     ];
 
     const perTrackRows = [
@@ -171,10 +170,53 @@ function applyModeToUI() {
         if (rangeStartSlider) rangeStartSlider.disabled = false;
         if (rangeEndSlider)   rangeEndSlider.disabled   = false;
 
-        // Bereichszeilen einblenden
-        rangeRowElems.forEach(tr => {
-            if (tr) tr.c
+        // Bereichszellen wieder einfärben
+        rangeRows.forEach(el => {
+            if (el) el.classList.remove('disabled-range-cell');
+        });
 
+        if (processedDataA) updateRangeStats();
+    } else {
+        // Vergleichsmodus
+        if (fileBContainer) fileBContainer.classList.remove('hidden');
+        if (fitFileBLabel)  fitFileBLabel.classList.remove('hidden');
+        if (fitFileBInput)  fitFileBInput.classList.remove('hidden');
+        if (trackBHeader)   trackBHeader.classList.remove('hidden');
+        trackBCells.forEach(td => td.classList.remove('hidden'));
+        perTrackRows.forEach(row => { if (row) row.classList.remove('hidden'); });
+
+        // Bereichsanalyse ausblenden + Slider deaktivieren
+        if (rangeControls) rangeControls.classList.add('hidden');
+        if (rangeStartSlider) rangeStartSlider.disabled = true;
+        if (rangeEndSlider)   rangeEndSlider.disabled   = true;
+
+        // Bereichswerte leeren
+        if (rangeDurationAElem) rangeDurationAElem.textContent = 'N/A';
+        if (rangeHrAElem)       rangeHrAElem.textContent       = 'N/A';
+        if (rangeDistanceAElem) rangeDistanceAElem.textContent = 'N/A';
+        if (rangeSpeedAElem)    rangeSpeedAElem.textContent    = 'N/A';
+        if (rangePowerAElem)    rangePowerAElem.textContent    = 'N/A';
+        if (rangeAscentAElem)   rangeAscentAElem.textContent   = 'N/A';
+        if (rangeDescentAElem)  rangeDescentAElem.textContent  = 'N/A';
+        if (rangeMaxPowerDurationsAElem) rangeMaxPowerDurationsAElem.textContent = 'N/A';
+
+        // Bereichszellen ausgrauen
+        rangeRows.forEach(el => {
+            if (el) el.classList.add('disabled-range-cell');
+        });
+
+        // Bereichs- und Max-Interval-Markierungen im Chart entfernen
+        if (altitudeChartInstance) {
+            const ds = altitudeChartInstance.data.datasets;
+            ['Bereich Start', 'Bereich Ende', 'Max 5min', 'Max 10min', 'Max 20min', 'Max 60min']
+                .forEach(label => {
+                    const idx = ds.findIndex(d => d.label === label);
+                    if (idx !== -1) ds[idx].data = [];
+                });
+            altitudeChartInstance.update('none');
+        }
+    }
+}
 
 
 function initMap() {
